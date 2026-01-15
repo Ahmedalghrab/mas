@@ -16,17 +16,25 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
 
 // Determine database provider
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Railway provides DATABASE_URL environment variable
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (string.IsNullOrEmpty(connectionString))
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+}
 
 // Log the connection string status for debugging
 Console.WriteLine($"Connection String Found: {!string.IsNullOrEmpty(connectionString)}");
 if (!string.IsNullOrEmpty(connectionString))
 {
-    Console.WriteLine($"Connection String starts with: {connectionString?.Substring(0, Math.Min(20, connectionString.Length))}...");
+    Console.WriteLine($"Connection String length: {connectionString.Length}");
+    Console.WriteLine($"Connection String starts with: {connectionString?.Substring(0, Math.Min(30, connectionString.Length))}...");
 }
 else
 {
     Console.WriteLine("ERROR: No connection string found!");
+    Console.WriteLine($"DATABASE_URL env: {Environment.GetEnvironmentVariable("DATABASE_URL") ?? "NULL"}");
+    Console.WriteLine($"Config connection: {builder.Configuration.GetConnectionString("DefaultConnection") ?? "NULL"}");
 }
 
 var usePostgres = connectionString?.Contains("Host=") == true || connectionString?.Contains("postgres") == true;
