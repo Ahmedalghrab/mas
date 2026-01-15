@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Jpeg;
+using mas.Services;
 
 namespace mas.Controllers;
 
@@ -10,42 +8,35 @@ namespace mas.Controllers;
 [Route("api/[controller]")]
 public class ImageController : ControllerBase
 {
-private readonly IWebHostEnvironment _environment;
+    private readonly IImageUploadService _imageUploadService;
     private readonly ILogger<ImageController> _logger;
     private const int MaxFileSize = 10 * 1024 * 1024; // 10MB
- private readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+    private readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
 
-    public ImageController(IWebHostEnvironment environment, ILogger<ImageController> logger)
+    public ImageController(IImageUploadService imageUploadService, ILogger<ImageController> logger)
     {
-        _environment = environment;
+        _imageUploadService = imageUploadService;
         _logger = logger;
     }
 
     [Authorize(Policy = "AdminOnly")]
     [HttpPost("upload")]
-    public async Task<ActionResult<ImageUploadResponse>> UploadImage(IFormFile file, [FromQuery] bool enhance = true)
+    public async Task<ActionResult<ImageUploadResponse>> UploadImage(IFormFile file, [FromQuery] string folder = "products")
     {
         if (file == null || file.Length == 0)
-    return BadRequest("No file uploaded");
+            return BadRequest("No file uploaded");
 
         if (file.Length > MaxFileSize)
-       return BadRequest("File size exceeds 10MB limit");
+            return BadRequest("File size exceeds 10MB limit");
 
-var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AllowedExtensions.Contains(extension))
-         return BadRequest("Invalid file type. Only images are allowed.");
+            return BadRequest("Invalid file type. Only images are allowed.");
 
         try
         {
-   var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "products");
-     var thumbnailFolder = Path.Combine(_environment.WebRootPath, "uploads", "thumbnails");
-        
-      Directory.CreateDirectory(uploadsFolder);
-            Directory.CreateDirectory(thumbnailFolder);
-
-      var fileName = $"{Guid.NewGuid()}{extension}";
-      var filePath = Path.Combine(uploadsFolder, fileName);
-     var thumbnailPath = Path.Combine(thumbnailFolder, fileName);
+            // Upload to Cloudinary
+            var imageUrl = await _imageUploadService.UploadImageAsync(file, folder);
 
     using (var image = await Image.LoadAsync(file.OpenReadStream()))
        {
@@ -66,69 +57,41 @@ var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
    .Brightness(1.05f) // Slightly brighten
           );
      }
-  else
-      {
-         image.Mutate(x => x
-            .AutoOrient()
-   .Resize(new ResizeOptions
-    {
-             Size = new Size(1200, 1200),
-       Mode = ResizeMode.Max
-        })
-            );
-          }
-
-    await image.SaveAsync(filePath, new JpegEncoder { Quality = 90 });
-
-// Create thumbnail
-           var thumbnailSize = new Size(300, 300);
-          image.Mutate(x => x.Resize(new ResizeOptions
-         {
-     Size = thumbnailSize,
-     Mode = ResizeMode.Crop
-                }));
-
-   await image.SaveAsync(thumbnailPath, new JpegEncoder { Quality = 85 });
- }
 
             return Ok(new ImageUploadResponse
-   {
-            ImagePath = $"/uploads/products/{fileName}",
-     ThumbnailPath = $"/uploads/thumbnails/{fileName}",
-                FileName = fileName
-  });
+            {
+                ImagePath = imageUrl,
+                ThumbnailPath = imageUrl, // Cloudinary handles thumbnails automatically
+                FileName = Path.GetFileName(file.FileName)
+            });
         }
         catch (Exception ex)
-    {
-    _logger.LogError(ex, "Error uploading image");
-  return StatusCode(500, "An error occurred while processing the image");
+        {
+            _logger.LogError(ex, "Error uploading image");
+            return StatusCode(500, "An error occurred while processing the image");
         }
- }
+    }
 
     [Authorize(Policy = "AdminOnly")]
     [HttpDelete("delete")]
-  public IActionResult DeleteImage([FromQuery] string imagePath)
+    public async Task<IActionResult> DeleteImage([FromQuery] string publicId)
     {
-        if (string.IsNullOrEmpty(imagePath))
-    return BadRequest("Image path is required");
+        if (string.IsNullOrEmpty(publicId))
+            return BadRequest("Public ID is required");
 
-  try
+        try
         {
-   var fullPath = Path.Combine(_environment.WebRootPath, imagePath.TrimStart('/'));
-            
-     if (System.IO.File.Exists(fullPath))
-            {
-     System.IO.File.Delete(fullPath);
+            var deleted = await _imageUploadService.DeleteImageAsync(publicId);
+            if (deleted)
                 return Ok("Image deleted successfully");
-            }
-
-   return NotFound("Image not found");
- }
+            
+            return NotFound("Image not found");
+        }
         catch (Exception ex)
-{
-         _logger.LogError(ex, "Error deleting image");
- return StatusCode(500, "An error occurred while deleting the image");
-     }
+        {
+            _logger.LogError(ex, "Error deleting image");
+            return StatusCode(500, "An error occurred while deleting the image");
+        }
     }
 }
 

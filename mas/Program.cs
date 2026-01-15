@@ -68,6 +68,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 });
 
+// Register image upload service
+builder.Services.AddScoped<Services.IImageUploadService, Services.CloudinaryImageService>();
+
 // Add HttpClient for server-side Blazor components
 builder.Services.AddHttpClient();
 builder.Services.AddScoped(sp =>
