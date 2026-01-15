@@ -15,19 +15,37 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Determine database provider
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var usePostgres = connectionString?.Contains("Host=") == true || connectionString?.Contains("postgres") == true;
+
 // Add database context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"), 
-        sqliteOptions => sqliteOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery));
+    if (usePostgres)
+    {
+        options.UseNpgsql(connectionString);
+    }
+    else
+    {
+        options.UseSqlite(connectionString, 
+            sqliteOptions => sqliteOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery));
+    }
     options.EnableSensitiveDataLogging(builder.Environment.IsDevelopment());
 });
 
 // DbContext factory for Blazor Server components (avoid long-lived DbContext in circuits)
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
 {
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqliteOptions => sqliteOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery));
+    if (usePostgres)
+    {
+        options.UseNpgsql(connectionString);
+    }
+    else
+    {
+        options.UseSqlite(connectionString,
+            sqliteOptions => sqliteOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery));
+    }
     options.EnableSensitiveDataLogging(builder.Environment.IsDevelopment());
 },
     ServiceLifetime.Scoped);
