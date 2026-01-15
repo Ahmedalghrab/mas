@@ -15,14 +15,27 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Force Production environment on Railway
+if (Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") != null)
+{
+    builder.Environment.EnvironmentName = "Production";
+}
+
 // Determine database provider
 // Railway provides DATABASE_URL environment variable - read it directly
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+// Debug logging
+Console.WriteLine("=== DATABASE CONNECTION DEBUG ===");
+Console.WriteLine($"RAILWAY_ENVIRONMENT: {Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") ?? "NULL"}");
+Console.WriteLine($"ASPNETCORE_ENVIRONMENT: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"DATABASE_URL exists: {!string.IsNullOrEmpty(connectionString)}");
 
 // Fallback to Configuration if env variable not found
 if (string.IsNullOrEmpty(connectionString))
 {
     connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    Console.WriteLine("Using ConnectionStrings:DefaultConnection from appsettings");
 }
 
 // Critical: Exit if no connection string found to prevent infinite error loops
@@ -35,10 +48,11 @@ if (string.IsNullOrEmpty(connectionString))
 }
 
 Console.WriteLine($"✓ Connection String Found (length: {connectionString.Length})");
-Console.WriteLine($"✓ Connection type: {(connectionString.Contains("postgres") ? "PostgreSQL" : "SQLite")}");
+Console.WriteLine($"✓ Connection starts with: {connectionString?.Substring(0, Math.Min(15, connectionString.Length))}...");
 
 var usePostgres = connectionString.Contains("Host=") || connectionString.Contains("postgres");
 Console.WriteLine($"✓ Using PostgreSQL: {usePostgres}");
+Console.WriteLine("=== END DEBUG ===");
 
 // Add database context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
