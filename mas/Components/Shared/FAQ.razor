@@ -1,0 +1,111 @@
+@rendermode InteractiveServer
+
+@if (faqs != null && faqs.Any())
+{
+    <section class="faq-section py-5">
+<div class="container">
+  <div class="text-center mb-5">
+    <h2 class="display-5 fw-bold text-primary mb-3">
+      <i class="bi bi-question-circle"></i> الأسئلة الشائعة
+  </h2>
+       <p class="lead text-muted">إجابات على أكثر الأسئلة شيوعًا</p>
+   </div>
+
+   <div class="row justify-content-center">
+ <div class="col-lg-8">
+        <div class="accordion accordion-flush" id="faqAccordion">
+  @for (int i = 0; i < faqs.Count; i++)
+  {
+    var faq = faqs[i];
+      var collapseId = $"collapse{i}";
+      var headingId = $"heading{i}";
+ var isFirst = i == 0;
+
+     <div class="accordion-item border-0 shadow-sm mb-3 rounded">
+  <h2 class="accordion-header" id="@headingId">
+       <button class="accordion-button @(isFirst ? "" : "collapsed") rounded fw-bold" 
+   type="button" 
+        data-bs-toggle="collapse" 
+     data-bs-target="#@collapseId">
+    <i class="bi bi-question-circle-fill text-primary me-2"></i>
+        @faq.QuestionAr
+    </button>
+      </h2>
+   <div id="@collapseId" 
+    class="accordion-collapse collapse @(isFirst ? "show" : "")" 
+  data-bs-parent="#faqAccordion">
+  <div class="accordion-body bg-light">
+@faq.AnswerAr
+  </div>
+   </div>
+  </div>
+  }
+   </div>
+  </div>
+     </div>
+ </div>
+    </section>
+}
+
+@code {
+ [Inject] private HttpClient Http { get; set; } = default!;
+
+private List<FAQDto>? faqs;
+
+    protected override async Task OnInitializedAsync()
+    {
+   await LoadFAQs();
+    }
+
+private async Task LoadFAQs()
+{
+   try
+        {
+  faqs = await Http.GetFromJsonAsync<List<FAQDto>>("/api/faqs?isActive=true");
+   }
+        catch { }
+    }
+
+  public class FAQDto
+    {
+ public int Id { get; set; }
+     public string QuestionAr { get; set; } = "";
+        public string AnswerAr { get; set; } = "";
+    }
+}
+
+<style>
+  .accordion-button:not(.collapsed) {
+  background-color: var(--primary-color);
+        color: white;
+    }
+
+    .accordion-button:not(.collapsed) i {
+  color: white !important;
+    }
+
+    .accordion-button {
+     font-size: 1.1rem;
+   padding: 1.25rem;
+        transition: all 0.3s ease;
+    }
+
+    .accordion-button:hover {
+ background-color: rgba(13, 110, 253, 0.1);
+    }
+
+    .accordion-body {
+ font-size: 1.05rem;
+   line-height: 1.8;
+        padding: 1.5rem;
+  }
+
+.accordion-item {
+  overflow: hidden;
+   transition: all 0.3s ease;
+    }
+
+    .accordion-item:hover {
+   transform: translateX(-5px);
+    }
+</style>

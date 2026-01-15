@@ -1,0 +1,349 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>الرئيسية - خدمات الطلاب</PageTitle>
+
+<!-- Floating Particles Background -->
+<div class="particles-container">
+    @for (int i = 0; i < 20; i++)
+    {
+     <div class="particle" style="left: @(Random.Shared.Next(0, 100))%; animation-delay: @(Random.Shared.Next(0, 5))s;"></div>
+    }
+</div>
+
+<!-- Magic Hero Section -->
+<section class="hero-section text-center py-5 position-relative">
+ <div class="container">
+     <div class="row justify-content-center">
+ <div class="col-lg-10">
+            <div class="floating">
+         <h1 class="display-2 fw-bold text-white mb-4 animate-fade-in" style="text-shadow: 0 0 40px rgba(255,255,255,0.8);">
+  ✨ خدمات الطلاب المتميزة ✨
+      </h1>
+          </div>
+    <p class="lead text-white mb-4 fs-3" style="text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+🌟 نوفر لك أفضل الخدمات الأكاديمية والتقنية بجودة عالية وأسعار مناسبة 🌟
+ </p>
+             <div class="sparkle-btn">
+        <a href="#services" class="btn btn-light btn-lg px-5 py-4 rounded-pill shadow-lg fs-4 fw-bold">
+       <i class="bi bi-stars"></i> استكشف عالم الخدمات <i class="bi bi-arrow-down-circle"></i>
+                </a>
+      </div>
+      </div>
+        </div>
+    </div>
+    
+    <!-- Animated Waves -->
+    <div class="waves">
+        <svg class="wave" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+            <path fill="#ffffff" fill-opacity="0.3" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        </svg>
+    </div>
+</section>
+
+<!-- Magical Featured Services -->
+<section class="py-5 position-relative" style="background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);">
+    <div class="container">
+        <div class="text-center mb-5">
+        <div class="floating">
+        <h2 class="display-4 fw-bold mb-3" style="background: linear-gradient(135deg, #ff6b9d, #c44569, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+         🎨 خدماتنا المميزة 🎨
+     </h2>
+      </div>
+    <p class="lead fs-4" style="color: #2d3436;">✨ اختر الخدمة المناسبة لاحتياجاتك ✨</p>
+   </div>
+
+        @if (loading)
+ {
+            <div class="text-center py-5">
+            <div class="spinner-border sparkle" style="width: 5rem; height: 5rem;" role="status">
+        <span class="visually-hidden">جاري التحميل...</span>
+    </div>
+    <p class="mt-3 fs-4 fw-bold" style="color: #ff6b9d;">✨ جاري تحميل الخدمات الرائعة ✨</p>
+        </div>
+      }
+        else if (featuredProducts != null && featuredProducts.Any())
+    {
+   <div class="row g-4">
+          @foreach (var product in featuredProducts)
+                {
+       <div class="col-md-6 col-lg-4">
+      <div class="card product-card h-100 border-0 hover-lift magic-card">
+       <!-- Sparkle Effect -->
+ <div class="sparkle-overlay"></div>
+       
+             @if (!string.IsNullOrEmpty(product.ImagePath))
+               {
+  <div class="position-relative overflow-hidden" style="border-radius: 25px 25px 0 0;">
+  <img src="@product.ImagePath" class="card-img-top" alt="@product.NameAr" 
+         style="height: 300px; object-fit: cover;" />
+                @if (product.DiscountPrice.HasValue)
+        {
+              <div class="position-absolute top-0 end-0 m-3">
+      <span class="badge bg-danger fs-5 px-4 py-2 sparkle" style="border-radius: 20px; box-shadow: 0 5px 20px rgba(255, 118, 117, 0.5);">
+🔥 خصم @((int)(((product.Price - product.DiscountPrice.Value) / product.Price) * 100))%
+</span>
+     </div>
+            }
+     </div>
+  }
+       else
+            {
+       <div class="card-img-top d-flex align-items-center justify-content-center" 
+          style="height: 300px; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); border-radius: 25px 25px 0 0;">
+     <i class="bi bi-image-fill floating" style="font-size: 6rem; color: rgba(255,255,255,0.7);"></i>
+           </div>
+              }
+      
+         <div class="card-body p-4">
+       @if (!string.IsNullOrEmpty(product.Category?.NameAr))
+            {
+         <span class="badge mb-3 fs-6 px-3 py-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
+   <i class="bi bi-tag-fill"></i> @product.Category.NameAr
+         </span>
+    }
+  
+       <h5 class="card-title fw-bold fs-3 mb-3" style="color: #2d3436;">
+      @product.NameAr
+     </h5>
+  
+  <p class="card-text text-muted fs-6 mb-4" style="line-height: 1.8;">
+        @(product.DescriptionAr.Length > 100 
+         ? product.DescriptionAr.Substring(0, 100) + "..." 
+      : product.DescriptionAr)
+         </p>
+               
+      <div class="d-flex justify-content-between align-items-center mt-4">
+               <div>
+             @if (product.DiscountPrice.HasValue)
+   {
+            <div class="text-decoration-line-through text-muted fs-6 mb-2">
+       @product.Price.ToString("N0") ر.س
+ </div>
+    <div class="fs-2 fw-bold sparkle" style="background: linear-gradient(135deg, #fa709a, #fee140); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+    🎁 @product.DiscountPrice.Value.ToString("N0") ر.س
+   </div>
+         }
+  else
+   {
+   <div class="fs-2 fw-bold" style="color: #ff6b9d;">
+     @product.Price.ToString("N0") ر.س
+           </div>
+     }
+         </div>
+        <a href="/services/@product.Id" class="btn btn-primary btn-lg px-4 py-3 fs-5">
+             التفاصيل <i class="bi bi-arrow-left"></i>
+      </a>
+        </div>
+    </div>
+      </div>
+              </div>
+         }
+       </div>
+  }
+        else
+        {
+       <div class="alert alert-info text-center p-5 fs-4" style="border-radius: 25px; background: rgba(255,255,255,0.9);">
+        <i class="bi bi-info-circle fs-1"></i>
+        <p class="mt-3">لا توجد خدمات متاحة حالياً</p>
+            </div>
+        }
+
+        <div class="text-center mt-5">
+            <a href="/services" class="btn btn-danger btn-lg px-5 py-4 fs-3 fw-bold floating">
+     <i class="bi bi-grid-3x3-gap"></i> عرض جميع الخدمات <i class="bi bi-arrow-left-circle"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Rainbow Categories Section -->
+<section id="services" class="py-5" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="floating">
+     <h2 class="display-4 fw-bold mb-3" style="background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+           🌈 التصنيفات 🌈
+         </h2>
+       </div>
+            <p class="lead fs-4" style="color: #2d3436;">🎯 تصفح خدماتنا حسب التصنيف 🎯</p>
+        </div>
+
+        @if (categories != null && categories.Any())
+ {
+            <div class="row g-4">
+      @foreach (var category in categories)
+     {
+        <div class="col-md-6 col-lg-3">
+    <div class="card category-card h-100 text-center border-0 hover-lift">
+     <div class="card-body p-4">
+           <div class="category-icon mb-4 floating">
+               <i class="@category.IconClass" style="font-size: 5rem;"></i>
+    </div>
+        <h5 class="card-title fw-bold fs-3 mb-3" style="color: #2d3436;">
+     @category.NameAr
+  </h5>
+    @if (!string.IsNullOrEmpty(category.DescriptionAr))
+ {
+  <p class="card-text text-muted fs-6 mb-4">@category.DescriptionAr</p>
+      }
+     <a href="/services?category=@category.Id" class="btn btn-outline-primary btn-lg px-4 py-3 fs-6">
+       عرض الخدمات <i class="bi bi-arrow-left"></i>
+  </a>
+     </div>
+   </div>
+   </div>
+         }
+            </div>
+}
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<Testimonials />
+
+<!-- FAQ Section -->
+<FAQ />
+
+<!-- Magic CTA Section -->
+<section class="py-5 position-relative overflow-hidden" style="background: linear-gradient(135deg, #ff6b9d 0%, #c44569 50%, #a29bfe 100%);">
+    <div class="container">
+        <div class="row align-items-center">
+      <div class="col-lg-8">
+            <div class="floating">
+           <h2 class="display-5 fw-bold mb-3 text-white">🎪 هل لديك مشروع أو استفسار؟ 🎪</h2>
+    <p class="lead text-white fs-4">✨ نحن هنا لمساعدتك في تحقيق أهدافك الأكاديمية ✨</p>
+      </div>
+      </div>
+   <div class="col-lg-4 text-lg-end">
+<a href="https://wa.me/966500000000" class="btn btn-light btn-lg px-5 py-4 fs-3 fw-bold sparkle" target="_blank">
+        <i class="bi bi-whatsapp"></i> تواصل معنا 💬
+</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.particles-container {
+    position: fixed;
+    top: 0;
+  left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.magic-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.magic-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+  transform: rotate(45deg);
+    transition: all 0.6s ease;
+}
+
+.magic-card:hover::after {
+    right: 100%;
+}
+
+.sparkle-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.magic-card:hover .sparkle-overlay {
+    opacity: 1;
+}
+
+.waves {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+}
+
+.wave {
+    width: 100%;
+    height: auto;
+  animation: wave 8s ease-in-out infinite;
+}
+
+.sparkle-btn {
+    animation: sparkle 2s ease-in-out infinite;
+}
+</style>
+
+@code {
+    private List<ProductDto>? featuredProducts;
+    private List<CategoryDto>? categories;
+private bool loading = true;
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+     await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+      try
+        {
+        var productsTask = Http.GetFromJsonAsync<List<ProductDto>>("/api/products/featured");
+ var categoriesTask = Http.GetFromJsonAsync<List<CategoryDto>>("/api/categories");
+
+    await Task.WhenAll(productsTask, categoriesTask);
+
+            featuredProducts = await productsTask ?? new();
+      categories = await categoriesTask ?? new();
+    }
+        catch (Exception)
+   {
+    featuredProducts = new();
+     categories = new();
+}
+        finally
+    {
+        loading = false;
+    }
+    }
+
+    public class ProductDto
+    {
+        public int Id { get; set; }
+public string NameAr { get; set; } = "";
+        public string DescriptionAr { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? DiscountPrice { get; set; }
+        public string? ImagePath { get; set; }
+        public CategoryDto? Category { get; set; }
+    }
+
+    public class CategoryDto
+    {
+      public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string? DescriptionAr { get; set; }
+ public string? IconClass { get; set; }
+    }
+}

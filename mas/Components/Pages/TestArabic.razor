@@ -1,0 +1,152 @@
+@page "/test-arabic"
+@rendermode InteractiveServer
+
+<PageTitle>اختبار العربية - Test Arabic</PageTitle>
+
+<div class="container py-5">
+    <div class="text-center mb-5">
+  <h1 class="display-3 fw-bold text-primary">اختبار عرض النص العربي</h1>
+        <p class="lead">Arabic Text Display Test</p>
+    </div>
+
+    <div class="row g-4">
+      <!-- Test Card 1 -->
+   <div class="col-md-6">
+<div class="card shadow-sm">
+       <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">اختبار النص العربي</h5>
+      </div>
+          <div class="card-body">
+ <h6 class="fw-bold">نص عربي تجريبي:</h6>
+   <p>مرحبًا بك في منصة ALMASS</p>
+     <p>هذا نص عربي لاختبار دعم اللغة العربية وعرضها بشكل صحيح.</p>
+         
+<h6 class="fw-bold mt-3">الأرقام:</h6>
+  <p>٠١٢٣٤٥٦٧٨٩</p>
+ <p>1234567890</p>
+   
+    <h6 class="fw-bold mt-3">علامات الترقيم:</h6>
+      <p>مرحبًا، كيف حالك؟ هذا اختبار!</p>
+ </div>
+            </div>
+        </div>
+
+        <!-- Test Card 2 -->
+     <div class="col-md-6">
+          <div class="card shadow-sm">
+    <div class="card-header bg-success text-white">
+    <h5 class="mb-0">اختبار الخطوط</h5>
+         </div>
+   <div class="card-body">
+       <div class="mb-3">
+                 <strong style="font-family: 'Cairo', sans-serif;">Cairo:</strong>
+       <p style="font-family: 'Cairo', sans-serif;">نص عربي بخط القاهرة</p>
+            </div>
+          
+          <div class="mb-3">
+            <strong style="font-family: 'Tajawal', sans-serif;">Tajawal:</strong>
+        <p style="font-family: 'Tajawal', sans-serif;">نص عربي بخط تجوال</p>
+            </div>
+        
+    <div class="mb-3">
+  <strong>Default:</strong>
+        <p>نص عربي بالخط الافتراضي</p>
+       </div>
+          </div>
+ </div>
+        </div>
+
+     <!-- Test Card 3 -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+          <h5 class="mb-0">اختبار العناوين</h5>
+                </div>
+             <div class="card-body">
+             <h1>عنوان 1 - نص عربي</h1>
+          <h2>عنوان 2 - نص عربي</h2>
+        <h3>عنوان 3 - نص عربي</h3>
+      <h4>عنوان 4 - نص عربي</h4>
+              <h5>عنوان 5 - نص عربي</h5>
+          <h6>عنوان 6 - نص عربي</h6>
+       </div>
+   </div>
+      </div>
+
+        <!-- Test Card 4 -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+           <div class="card-header bg-warning">
+                <h5 class="mb-0">اختبار الأزرار والحقول</h5>
+     </div>
+            <div class="card-body">
+         <button class="btn btn-primary mb-2">زر أساسي</button>
+         <button class="btn btn-success mb-2">زر نجاح</button>
+       <button class="btn btn-danger mb-2">زر خطر</button>
+        
+         <input type="text" class="form-control mb-2" placeholder="اكتب نصًا هنا" />
+   <textarea class="form-control mb-2" rows="2" placeholder="اكتب ملاحظة"></textarea>
+           </div>
+        </div>
+      </div>
+
+        <!-- Test Card 5 - Special Characters -->
+        <div class="col-md-12">
+   <div class="card shadow-sm">
+          <div class="card-header bg-danger text-white">
+    <h5 class="mb-0">اختبار الحروف الخاصة</h5>
+          </div>
+  <div class="card-body">
+        <h6 class="fw-bold">حروف عربية:</h6>
+         <p class="fs-4">أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن هـ و ي</p>
+         <p class="fs-4">الْعَرَبِيَّةُ لُغَةٌ جَمِيلَةٌ</p>
+   
+        <h6 class="fw-bold mt-3">مزج عربي/إنجليزي:</h6>
+    <p class="fs-4">منصة ALMASS لخدمات الطلاب</p>
+          <p class="fs-4">Welcome to ALMASS — منصة طلابية متكاملة</p>
+           
+       <h6 class="fw-bold mt-3">نص مختلط (عربي + إنجليزي):</h6>
+      <p>ALMASS - منصة الماس</p>
+           <p>Email: info@almass.com</p>
+    <p>WhatsApp: +966 50 000 0000</p>
+     </div>
+        </div>
+ </div>
+
+        <!-- Font Check -->
+        <div class="col-md-12">
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+   <h5 class="mb-0">فحص الخط المستخدم</h5>
+   </div>
+ <div class="card-body">
+ <p id="font-check" class="fs-4 text-center">منصة الماس - ALMASS</p>
+          <div class="alert alert-info">
+             <strong>الخط الحالي:</strong> <span id="detected-font"></span>
+       </div>
+      </div>
+            </div>
+        </div>
+    </div>
+
+  <div class="text-center mt-5">
+    <h3 class="text-success">إذا ظهرت كل النصوص بوضوح، فالخطوط تعمل بشكل صحيح!</h3>
+        <p class="text-muted">If you see all text clearly, fonts are working correctly!</p>
+     <a href="/" class="btn btn-primary btn-lg mt-3">
+        <i class="bi bi-house"></i> العودة للرئيسية
+        </a>
+    </div>
+</div>
+
+<script>
+    // Detect font being used
+    window.addEventListener('load', function() {
+    var element = document.getElementById('font-check');
+     var font = window.getComputedStyle(element).getPropertyValue('font-family');
+        document.getElementById('detected-font').textContent = font;
+    });
+</script>
+
+@code {
+    // No code needed for this test page
+}

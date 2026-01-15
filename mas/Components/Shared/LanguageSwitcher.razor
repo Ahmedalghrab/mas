@@ -1,0 +1,32 @@
+@inject mas.Services.LanguageService Lang
+
+<div class="language-switcher">
+    <button class="btn btn-outline-light btn-sm rounded-pill px-3" @onclick="ToggleLanguage">
+        @if (Lang.IsArabic)
+        {
+            <span>EN</span>
+        }
+        else
+        {
+            <span>AR</span>
+        }
+        <i class="bi bi-translate ms-1"></i>
+    </button>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Lang.OnLanguageChanged += StateHasChanged;
+    }
+
+    private void ToggleLanguage()
+    {
+        Lang.ToggleLanguage();
+    }
+
+    public void Dispose()
+    {
+        Lang.OnLanguageChanged -= StateHasChanged;
+    }
+}

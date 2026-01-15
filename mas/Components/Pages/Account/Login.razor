@@ -1,0 +1,80 @@
+@page "/Account/Login"
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>تسجيل الدخول - الماسة</PageTitle>
+
+<div class="login-page" style="min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card shadow-lg border-0" style="border-radius: 20px;">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-shield-lock fs-1 text-primary"></i>
+                            <h2 class="fw-bold mt-3">تسجيل الدخول</h2>
+                            <p class="text-muted">أدخل بياناتك للوصول إلى لوحة التحكم</p>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Error))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle"></i> @Error
+                            </div>
+                        }
+
+                        <form method="post" action="/Account/LoginPost">
+                            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">البريد الإلكتروني</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" name="Email" class="form-control form-control-lg" placeholder="admin@mas.com" value="admin@mas.com" required />
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">كلمة المرور</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                    <input type="password" name="Password" class="form-control form-control-lg" placeholder="********" required />
+                                </div>
+                            </div>
+
+                            <div class="mb-4 form-check">
+                                <input type="checkbox" name="RememberMe" class="form-check-input" id="rememberMe" value="true" />
+                                <label class="form-check-label" for="rememberMe">تذكرني</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> دخول
+                            </button>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <a href="/" class="text-decoration-none">
+                                <i class="bi bi-arrow-right"></i> العودة للرئيسية
+                            </a>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="text-center text-muted small">
+                            <p class="mb-1"><strong>بيانات الدخول الافتراضية:</strong></p>
+                            <p class="mb-0">البريد: <code>admin@mas.com</code></p>
+                            <p>كلمة المرور: <code>Admin@123</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+}

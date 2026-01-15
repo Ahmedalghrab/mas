@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <!-- Gradient للجوهرة -->
+    <linearGradient id="gemGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9B59B6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8E44AD;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6C3483;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient للإضاءة -->
+    <linearGradient id="shineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0" />
+    </linearGradient>
+    
+    <!-- Gradient للظل -->
+    <linearGradient id="shadowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A235A;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#4A235A;stop-opacity:0.8" />
+    </linearGradient>
+    
+    <!-- تأثير التوهج -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- الظل تحت الجوهرة -->
+  <ellipse cx="100" cy="175" rx="40" ry="8" fill="url(#shadowGradient)" opacity="0.5"/>
+  
+  <!-- الجوهرة الرئيسية - شكل الماسة -->
+  <g filter="url(#glow)">
+    <!-- الجزء العلوي من الجوهرة (التاج) -->
+    <polygon points="100,20 140,55 60,55" fill="#A569BD"/>
+    
+    <!-- الجزء الأيسر العلوي -->
+    <polygon points="60,55 100,20 100,55" fill="#BB8FCE"/>
+    
+    <!-- الجزء الأيمن العلوي -->
+    <polygon points="140,55 100,20 100,55" fill="#9B59B6"/>
+    
+    <!-- الوجه الرئيسي للجوهرة -->
+    <polygon points="60,55 140,55 100,160" fill="url(#gemGradient)"/>
+    
+    <!-- الوجه الأيسر -->
+    <polygon points="60,55 100,55 100,160" fill="#8E44AD"/>
+    
+    <!-- الوجه الأيمن -->
+    <polygon points="140,55 100,55 100,160" fill="#7D3C98"/>
+    
+    <!-- خطوط الانكسار الداخلية -->
+    <polygon points="80,55 100,55 90,100" fill="#9B59B6" opacity="0.7"/>
+    <polygon points="120,55 100,55 110,100" fill="#A569BD" opacity="0.5"/>
+    <polygon points="90,100 100,55 100,160" fill="#8E44AD" opacity="0.6"/>
+    <polygon points="110,100 100,55 100,160" fill="#9B59B6" opacity="0.4"/>
+    
+    <!-- لمعان على الجوهرة -->
+    <polygon points="70,60 85,55 80,75" fill="url(#shineGradient)"/>
+    <polygon points="100,25 110,40 95,45" fill="white" opacity="0.4"/>
+    
+    <!-- نقاط اللمعان -->
+    <circle cx="75" cy="65" r="3" fill="white" opacity="0.8"/>
+    <circle cx="105" cy="35" r="2" fill="white" opacity="0.9"/>
+    <circle cx="85" cy="48" r="1.5" fill="white" opacity="0.7"/>
+  </g>
+  
+  <!-- إطار خارجي خفيف -->
+  <polygon points="100,20 140,55 100,160 60,55" fill="none" stroke="#D7BDE2" stroke-width="1" opacity="0.5"/>
+</svg>

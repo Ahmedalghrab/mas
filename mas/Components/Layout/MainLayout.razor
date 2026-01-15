@@ -1,0 +1,152 @@
+@inherits LayoutComponentBase
+@inject mas.Services.LanguageService Lang
+
+<div class="page-wrapper" dir="@Lang.Direction">
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold fs-3 d-flex align-items-center gap-3" href="/">
+                <div class="logo-container" style="position: relative;">
+                    <img src="/images/almasa-logo.svg" alt="Almasa Logo" class="logo-image" 
+                        style="height: 60px; width: auto; filter: drop-shadow(0 0 15px rgba(155, 89, 182, 0.8));" />
+                </div>
+                <span class="logo-text" style="background: linear-gradient(135deg, #fff, #ffeaa7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; letter-spacing: 2px;">
+                    Almasa
+                </span>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-house-door-fill"></i> @Lang.Get("nav_home")
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/services">
+                            <i class="bi bi-grid-3x3-gap-fill"></i> @Lang.Get("nav_services")
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">
+                            <i class="bi bi-info-circle-fill"></i> @Lang.Get("nav_about")
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact">
+                            <i class="bi bi-envelope-heart-fill"></i> @Lang.Get("nav_contact")
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex gap-2 align-items-center">
+                    <LanguageSwitcher />
+                    <a href="@whatsappLink" class="btn btn-outline-light btn-lg px-4 rounded-pill" target="_blank" style="border-width: 2px;">
+                        <i class="bi bi-whatsapp"></i> @Lang.Get("contact_us")
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        @Body
+    </main>
+
+    <WhatsAppButton />
+
+    <footer class="bg-dark text-white py-5 mt-5 position-relative">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <img src="/images/almasa-logo.svg" alt="Almasa Logo" 
+                            style="height: 50px; width: auto; filter: drop-shadow(0 0 10px rgba(155, 89, 182, 0.6));" />
+                        <h5 class="fw-bold mb-0" style="background: linear-gradient(135deg, #fff, #ffeaa7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                            Almasa
+                        </h5>
+                    </div>
+                    <p class="text-muted">@Lang.Get("about_desc")</p>
+                    <div class="d-flex gap-3 mt-3">
+                        <a href="#" class="text-white fs-4"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="text-white fs-4"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="text-white fs-4"><i class="bi bi-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="fw-bold mb-3">@Lang.Get("quick_links")</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="/" class="text-muted text-decoration-none">
+                                <i class="bi bi-chevron-@(Lang.IsArabic ? "left" : "right")"></i> @Lang.Get("nav_home")
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="/services" class="text-muted text-decoration-none">
+                                <i class="bi bi-chevron-@(Lang.IsArabic ? "left" : "right")"></i> @Lang.Get("nav_services")
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="/about" class="text-muted text-decoration-none">
+                                <i class="bi bi-chevron-@(Lang.IsArabic ? "left" : "right")"></i> @Lang.Get("nav_about")
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="/contact" class="text-muted text-decoration-none">
+                                <i class="bi bi-chevron-@(Lang.IsArabic ? "left" : "right")"></i> @Lang.Get("nav_contact")
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="fw-bold mb-3">@Lang.Get("contact_us")</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="@whatsappLink" class="text-muted text-decoration-none" target="_blank">
+                                <i class="bi bi-whatsapp"></i> WhatsApp
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="mailto:@email" class="text-muted text-decoration-none">
+                                <i class="bi bi-envelope"></i> @email
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <span class="text-muted">
+                                <i class="bi bi-geo-alt"></i> @Lang.Get("saudi_arabia")
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4 bg-secondary" />
+            <div class="text-center text-muted">
+                <p class="mb-0">
+                    &copy; @DateTime.Now.Year @siteName. @Lang.Get("copyright")
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <div id="blazor-error-ui" class="alert alert-danger" style="position: fixed; bottom: 20px; left: 20px; right: auto; z-index: 9999;">
+        An unexpected error occurred.
+        <a href="" class="alert-link">Reload</a>
+        <button class="btn-close" aria-label="Close"></button>
+    </div>
+</div>
+
+@code {
+    private string siteName = "ALMASS";
+    private string whatsappLink = "https://wa.me/966500000000";
+    private string email = "info@almass.com";
+
+    protected override void OnInitialized()
+    {
+        Lang.OnLanguageChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Lang.OnLanguageChanged -= StateHasChanged;
+    }
+}

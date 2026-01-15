@@ -1,0 +1,15 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/node_modules
+**/logs
+**/.env
+**/.env.local
+**/publish
+**/*.md
+**/.deployment

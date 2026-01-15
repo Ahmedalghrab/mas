@@ -1,0 +1,241 @@
+@page "/services"
+@rendermode InteractiveServer
+@inject mas.Services.LanguageService Lang
+
+<PageTitle>@Lang.Get("nav_services") - ALMASS</PageTitle>
+
+<div dir="@Lang.Direction">
+    <section class="hero-section text-center py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container">
+            <h1 class="display-3 fw-bold text-white mb-4">@Lang.Get("services_title")</h1>
+            <p class="lead text-white fs-4">@Lang.Get("services_desc")</p>
+        </div>
+    </section>
+
+    <section class="py-4" style="background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);">
+        <div class="container">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+                        <div class="card-body">
+                            <label class="form-label fw-bold"><i class="bi bi-search"></i> @Lang.Get("search")</label>
+                            <input type="text" @bind="searchTerm" @bind:event="oninput" @bind:after="ApplyFilters" 
+                                class="form-control form-control-lg" placeholder="@Lang.Get("search_placeholder")" style="border-radius: 15px;" />
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+                        <div class="card-body">
+                            <label class="form-label fw-bold"><i class="bi bi-funnel"></i> @Lang.Get("category")</label>
+                            <select @bind="selectedCategory" @bind:after="ApplyFilters" class="form-select form-select-lg" style="border-radius: 15px;">
+                                <option value="">@Lang.Get("all_categories")</option>
+                                @if (categories != null)
+                                {
+                                    @foreach (var cat in categories)
+                                    {
+                                        <option value="@cat.Id">@(Lang.IsArabic ? cat.NameAr : cat.NameEn)</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+                        <div class="card-body">
+                            <label class="form-label fw-bold"><i class="bi bi-sort-down"></i> @Lang.Get("sort_by")</label>
+                            <select @bind="sortBy" @bind:after="ApplyFilters" class="form-select form-select-lg" style="border-radius: 15px;">
+                                <option value="newest">@Lang.Get("newest")</option>
+                                <option value="price-low">@Lang.Get("price_low")</option>
+                                <option value="price-high">@Lang.Get("price_high")</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+        <div class="container">
+            @if (loading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border" style="width: 5rem; height: 5rem; color: #ff6b9d;" role="status">
+                        <span class="visually-hidden">@Lang.Get("loading")</span>
+                    </div>
+                    <p class="mt-3 fs-4 fw-bold" style="color: #ff6b9d;">@Lang.Get("loading_services")</p>
+                </div>
+            }
+            else if (filteredProducts != null && filteredProducts.Any())
+            {
+                <div class="row g-4">
+                    @foreach (var product in filteredProducts)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100 border-0 shadow-lg" style="border-radius: 25px;">
+                                @if (!string.IsNullOrEmpty(product.ImagePath))
+                                {
+                                    <div class="position-relative overflow-hidden" style="border-radius: 25px 25px 0 0;">
+                                        <img src="@product.ImagePath" class="card-img-top" alt="@(Lang.IsArabic ? product.NameAr : product.NameEn)" style="height: 250px; object-fit: cover;" />
+                                        @if (product.DiscountPrice.HasValue)
+                                        {
+                                            <div class="position-absolute top-0 @(Lang.IsArabic ? "start-0" : "end-0") m-3">
+                                                <span class="badge bg-danger fs-6 px-3 py-2">@Lang.Get("discount")</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="card-img-top d-flex align-items-center justify-content-center" 
+                                        style="height: 250px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 25px 25px 0 0;">
+                                        <i class="bi bi-image-fill" style="font-size: 5rem; color: rgba(255,255,255,0.7);"></i>
+                                    </div>
+                                }
+                                <div class="card-body p-4">
+                                    @if (!string.IsNullOrEmpty(product.Category?.NameAr))
+                                    {
+                                        <span class="badge mb-3 fs-6 px-3 py-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                            <i class="bi bi-tag-fill"></i> @(Lang.IsArabic ? product.Category.NameAr : product.Category.NameEn)
+                                        </span>
+                                    }
+                                    <h5 class="card-title fw-bold fs-4 mb-3">@(Lang.IsArabic ? product.NameAr : product.NameEn)</h5>
+                                    <p class="card-text text-muted mb-4">
+                                        @{
+                                            var desc = Lang.IsArabic ? product.DescriptionAr : (product.DescriptionEn ?? product.DescriptionAr);
+                                            @(desc.Length > 100 ? desc.Substring(0, 100) + "..." : desc)
+                                        }
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            @if (product.DiscountPrice.HasValue)
+                                            {
+                                                <div class="text-decoration-line-through text-muted fs-6">@product.Price.ToString("N0") @Lang.Get("sar")</div>
+                                                <div class="fs-4 fw-bold" style="color: #ff6b9d;">@product.DiscountPrice.Value.ToString("N0") @Lang.Get("sar")</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="fs-4 fw-bold" style="color: #ff6b9d;">@product.Price.ToString("N0") @Lang.Get("sar")</div>
+                                            }
+                                        </div>
+                                        <a href="/services/@product.Id" class="btn btn-primary btn-lg px-4">@Lang.Get("details")</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center p-5 fs-4" style="border-radius: 25px;">
+                    <i class="bi bi-inbox fs-1"></i>
+                    <p class="mt-3">@Lang.Get("no_services")</p>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+@code {
+    [Parameter][SupplyParameterFromQuery] public int? CategoryId { get; set; }
+
+    private List<ProductDto> allProducts = new();
+    private List<ProductDto> filteredProducts = new();
+    private List<CategoryDto> categories = new();
+    private string selectedCategory = "";
+    private string sortBy = "newest";
+    private string searchTerm = "";
+    private bool loading = true;
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Lang.OnLanguageChanged += StateHasChanged;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CategoryId.HasValue) selectedCategory = CategoryId.Value.ToString();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+        try
+        {
+            var productsTask = Http.GetFromJsonAsync<List<ProductDto>>("/api/products?isActive=true");
+            var categoriesTask = Http.GetFromJsonAsync<List<CategoryDto>>("/api/categories?isActive=true");
+            await Task.WhenAll(productsTask, categoriesTask);
+            allProducts = await productsTask ?? new();
+            categories = await categoriesTask ?? new();
+            ApplyFilters();
+        }
+        catch
+        {
+            allProducts = new();
+            categories = new();
+            filteredProducts = new();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        var filtered = allProducts.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filtered = filtered.Where(p => 
+                p.NameAr.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (p.NameEn?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                p.DescriptionAr.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+        if (!string.IsNullOrEmpty(selectedCategory) && int.TryParse(selectedCategory, out int catId))
+        {
+            filtered = filtered.Where(p => p.CategoryId == catId);
+        }
+        filtered = sortBy switch
+        {
+            "price-low" => filtered.OrderBy(p => p.DiscountPrice ?? p.Price),
+            "price-high" => filtered.OrderByDescending(p => p.DiscountPrice ?? p.Price),
+            _ => filtered.OrderByDescending(p => p.CreatedAt)
+        };
+        filteredProducts = filtered.ToList();
+    }
+
+    public void Dispose()
+    {
+        Lang.OnLanguageChanged -= StateHasChanged;
+    }
+
+    public class ProductDto
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string? NameEn { get; set; }
+        public string DescriptionAr { get; set; } = "";
+        public string? DescriptionEn { get; set; }
+        public decimal Price { get; set; }
+        public decimal? DiscountPrice { get; set; }
+        public string? ImagePath { get; set; }
+        public int CategoryId { get; set; }
+        public CategoryDto? Category { get; set; }
+        public bool IsFeatured { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class CategoryDto
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string? NameEn { get; set; }
+        public string? DescriptionAr { get; set; }
+    }
+}

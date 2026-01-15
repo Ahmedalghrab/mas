@@ -1,0 +1,301 @@
+@page "/admin/categories"
+@using Microsoft.AspNetCore.Authorization
+@using mas.Models
+@using System.Net.Http.Json
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "AdminOnly")]
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>إدارة التصنيفات - لوحة التحكم</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-5">
+                    <i class="bi bi-tags"></i> إدارة التصنيفات
+                </h1>
+                <button class="btn btn-primary btn-lg" @onclick="ShowAddModal">
+                    <i class="bi bi-plus-circle"></i> إضافة تصنيف جديد
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    }
+    else if (categories == null || !categories.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-3"></i>
+            <p class="mt-2 mb-0">لا توجد تصنيفات. اضغط "إضافة تصنيف جديد" للبدء.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الأيقونة</th>
+                                <th>الاسم بالعربي</th>
+                                <th>الاسم بالإنجليزي</th>
+                                <th>الوصف</th>
+                                <th>الحالة</th>
+                                <th>عدد الخدمات</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var category in categories)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="@category.IconClass fs-2" style="color: var(--primary-color);"></i>
+                                    </td>
+                                    <td>
+                                        <strong>@category.NameAr</strong>
+                                    </td>
+                                    <td>@category.NameEn</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(category.DescriptionAr))
+                                        {
+                                            <small class="text-muted">@(category.DescriptionAr.Length > 50 ? category.DescriptionAr.Substring(0, 50) + "..." : category.DescriptionAr)</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge @(category.IsActive ? "bg-success" : "bg-secondary")">
+                                            @(category.IsActive ? "نشط" : "غير نشط")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">@(category.Products?.Count ?? 0) خدمة</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditCategory(category)">
+                                            <i class="bi bi-pencil"></i> تعديل
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteCategory(category.Id)">
+                                            <i class="bi bi-trash"></i> حذف
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showMessage)
+    {
+        <div class="alert @messageClass alert-dismissible fade show mt-3" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => showMessage = false"></button>
+        </div>
+    }
+</div>
+
+<!-- Modal for Add/Edit Category -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">@(editingCategory.Id == 0 ? "إضافة تصنيف جديد" : "تعديل التصنيف")</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <form @onsubmit="SaveCategory">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الاسم بالعربي *</label>
+                                <input type="text" class="form-control form-control-lg" @bind="editingCategory.NameAr" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الاسم بالإنجليزي *</label>
+                                <input type="text" class="form-control form-control-lg" @bind="editingCategory.NameEn" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف بالعربي</label>
+                                <textarea class="form-control" rows="3" @bind="editingCategory.DescriptionAr"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف بالإنجليزي</label>
+                                <textarea class="form-control" rows="3" @bind="editingCategory.DescriptionEn"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">كلاس الأيقونة (Bootstrap Icons) *</label>
+                                <input type="text" class="form-control form-control-lg" @bind="editingCategory.IconClass" 
+                                       placeholder="مثال: bi bi-palette" required />
+                                <small class="text-muted">استخدم أيقونات Bootstrap Icons</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الحالة</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" role="switch" @bind="editingCategory.IsActive" />
+                                    <label class="form-check-label">@(editingCategory.IsActive ? "نشط" : "غير نشط")</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-footer mt-4 border-0">
+                            <button type="button" class="btn btn-secondary btn-lg" @onclick="CloseModal">إلغاء</button>
+                            <button type="submit" class="btn btn-primary btn-lg" disabled="@saving">
+                                @if (saving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-check-circle"></i> حفظ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Category>? categories;
+    private Category editingCategory = new() { NameAr = "", NameEn = "" };
+    private bool loading = true;
+    private bool saving = false;
+    private bool showModal = false;
+    private bool showMessage = false;
+    private string message = "";
+    private string messageClass = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        loading = true;
+        try
+        {
+            categories = await Http.GetFromJsonAsync<List<Category>>("api/Categories?isActive=");
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("فشل تحميل التصنيفات: " + ex.Message, "alert-danger");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ShowAddModal()
+    {
+        editingCategory = new Category 
+        { 
+            NameAr = "",
+            NameEn = "",
+            IsActive = true 
+        };
+        showModal = true;
+    }
+
+    private void EditCategory(Category category)
+    {
+        editingCategory = new Category
+        {
+            Id = category.Id,
+            NameAr = category.NameAr ?? "",
+            NameEn = category.NameEn ?? "",
+            DescriptionAr = category.DescriptionAr,
+            DescriptionEn = category.DescriptionEn,
+            IconClass = category.IconClass,
+            IsActive = category.IsActive
+        };
+        showModal = true;
+    }
+
+    private async Task SaveCategory()
+    {
+        saving = true;
+        try
+        {
+            HttpResponseMessage response;
+            if (editingCategory.Id == 0)
+            {
+                response = await Http.PostAsJsonAsync("api/Categories", editingCategory);
+            }
+            else
+            {
+                response = await Http.PutAsJsonAsync($"api/Categories/{editingCategory.Id}", editingCategory);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                ShowMessage("تم حفظ التصنيف بنجاح", "alert-success");
+                CloseModal();
+                await LoadCategories();
+            }
+            else
+            {
+                ShowMessage("فشل حفظ التصنيف", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("خطأ: " + ex.Message, "alert-danger");
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task DeleteCategory(int id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "هل أنت متأكد من حذف هذا التصنيف؟"))
+            return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/Categories/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                ShowMessage("تم حذف التصنيف بنجاح", "alert-success");
+                await LoadCategories();
+            }
+            else
+            {
+                ShowMessage("فشل حذف التصنيف", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("خطأ: " + ex.Message, "alert-danger");
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        editingCategory = new Category { NameAr = "", NameEn = "" };
+    }
+
+    private void ShowMessage(string msg, string cssClass)
+    {
+        message = msg;
+        messageClass = cssClass;
+        showMessage = true;
+    }
+}

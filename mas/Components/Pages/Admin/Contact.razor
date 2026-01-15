@@ -1,0 +1,253 @@
+@page "/admin/contact"
+@using Microsoft.AspNetCore.Authorization
+@using mas.Models
+@using System.Net.Http.Json
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "AdminOnly")]
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<PageTitle>الرسائل - لوحة التحكم</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-5">
+                        <i class="bi bi-envelope"></i> رسائل التواصل
+                    </h1>
+                    <p class="text-muted">إدارة رسائل العملاء والاستفسارات</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary btn-lg me-2" @onclick="() => FilterMessages(null)">
+                        <i class="bi bi-list-ul"></i> الكل (@totalCount)
+                    </button>
+                    <button class="btn btn-outline-info btn-lg me-2" @onclick="() => FilterMessages(false)">
+                        <i class="bi bi-envelope-fill"></i> غير مقروءة (@unreadCount)
+                    </button>
+                    <button class="btn btn-outline-success btn-lg" @onclick="() => FilterMessages(true)">
+                        <i class="bi bi-envelope-check"></i> مقروءة (@readCount)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    }
+    else if (filteredMessages == null || !filteredMessages.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-3"></i>
+            <p class="mt-2 mb-0">لا توجد رسائل @filterText</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var msg in filteredMessages)
+            {
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 @(msg.IsRead ? "" : "border-start border-primary border-4")">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-lg-9">
+                                    <div class="d-flex align-items-start mb-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
+                                             style="width: 50px; height: 50px; min-width: 50px;">
+                                            <i class="bi bi-person-fill fs-4"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h5 class="mb-1 fw-bold">@msg.Name</h5>
+                                                    <div class="text-muted small">
+                                                        <i class="bi bi-envelope me-1"></i> @msg.Email
+                                                        @if (!string.IsNullOrEmpty(msg.Phone))
+                                                        {
+                                                            <span class="mx-2">|</span>
+                                                            <i class="bi bi-telephone me-1"></i> @msg.Phone
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="badge @(msg.IsRead ? "bg-success" : "bg-danger") mb-2">
+                                                        @(msg.IsRead ? "مقروءة" : "غير مقروءة")
+                                                    </span>
+                                                    <div class="text-muted small">
+                                                        <i class="bi bi-clock me-1"></i>
+                                                        @msg.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mt-3">
+                                                <div class="fw-bold mb-2" style="color: var(--primary-color);">
+                                                    <i class="bi bi-chat-square-text"></i> @msg.Subject
+                                                </div>
+                                                <div class="bg-light p-3 rounded" style="white-space: pre-wrap;">
+                                                    @msg.Message
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <div class="d-grid gap-2">
+                                        @if (!msg.IsRead)
+                                        {
+                                            <button class="btn btn-success btn-lg" @onclick="() => MarkAsRead(msg.Id)">
+                                                <i class="bi bi-check-circle"></i> وضع علامة كمقروءة
+                                            </button>
+                                        }
+                                        <a href="mailto:@msg.Email" class="btn btn-outline-primary btn-lg">
+                                            <i class="bi bi-reply"></i> رد عبر البريد
+                                        </a>
+                                        @if (!string.IsNullOrEmpty(msg.Phone))
+                                        {
+                                            <a href="https://wa.me/@msg.Phone.Replace(" ", "").Replace("+", "")" 
+                                               class="btn btn-outline-success btn-lg" target="_blank">
+                                                <i class="bi bi-whatsapp"></i> واتساب
+                                            </a>
+                                        }
+                                        <button class="btn btn-outline-danger btn-lg" @onclick="() => DeleteMessage(msg.Id)">
+                                            <i class="bi bi-trash"></i> حذف
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (showMessage)
+    {
+        <div class="alert @messageClass alert-dismissible fade show mt-3" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => showMessage = false"></button>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ContactMessage>? messages;
+    private List<ContactMessage>? filteredMessages;
+    private bool loading = true;
+    private bool showMessage = false;
+    private string message = "";
+    private string messageClass = "";
+    private string filterText = "";
+    private int totalCount => messages?.Count ?? 0;
+    private int unreadCount => messages?.Count(m => !m.IsRead) ?? 0;
+    private int readCount => messages?.Count(m => m.IsRead) ?? 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMessages();
+    }
+
+    private async Task LoadMessages()
+    {
+        loading = true;
+        try
+        {
+            messages = await Http.GetFromJsonAsync<List<ContactMessage>>("api/Contact");
+            filteredMessages = messages;
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("فشل تحميل الرسائل: " + ex.Message, "alert-danger");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void FilterMessages(bool? isRead)
+    {
+        if (messages == null) return;
+
+        if (isRead == null)
+        {
+            filteredMessages = messages;
+            filterText = "";
+        }
+        else if (isRead == true)
+        {
+            filteredMessages = messages.Where(m => m.IsRead).ToList();
+            filterText = "المقروءة";
+        }
+        else
+        {
+            filteredMessages = messages.Where(m => !m.IsRead).ToList();
+            filterText = "غير المقروءة";
+        }
+    }
+
+    private async Task MarkAsRead(int id)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"api/Contact/{id}/mark-read", null);
+            if (response.IsSuccessStatusCode)
+            {
+                var msg = messages?.FirstOrDefault(m => m.Id == id);
+                if (msg != null)
+                {
+                    msg.IsRead = true;
+                }
+                ShowMessage("تم وضع علامة مقروءة على الرسالة", "alert-success");
+            }
+            else
+            {
+                ShowMessage("فشل تحديث الرسالة", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("خطأ: " + ex.Message, "alert-danger");
+        }
+    }
+
+    private async Task DeleteMessage(int id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "هل أنت متأكد من حذف هذه الرسالة؟"))
+            return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/Contact/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                ShowMessage("تم حذف الرسالة بنجاح", "alert-success");
+                await LoadMessages();
+            }
+            else
+            {
+                ShowMessage("فشل حذف الرسالة", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("خطأ: " + ex.Message, "alert-danger");
+        }
+    }
+
+    private void ShowMessage(string msg, string cssClass)
+    {
+        message = msg;
+        messageClass = cssClass;
+        showMessage = true;
+    }
+}

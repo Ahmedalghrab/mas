@@ -1,0 +1,154 @@
+@page "/page/{slug}"
+@rendermode InteractiveServer
+
+<PageTitle>@(pageContent?.TitleAr ?? "صفحة") - الماسة</PageTitle>
+
+<div class="container py-5">
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    }
+    else if (pageContent == null)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i> الصفحة غير موجودة
+        </div>
+        <a href="/" class="btn btn-primary">
+            <i class="bi bi-house"></i> العودة للرئيسية
+        </a>
+    }
+    else
+    {
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">الرئيسية</a></li>
+                <li class="breadcrumb-item active">@pageContent.TitleAr</li>
+            </ol>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="text-center mb-5">
+            @if (!string.IsNullOrEmpty(pageContent.IconClass))
+            {
+                <i class="@pageContent.IconClass display-1 text-primary mb-3"></i>
+            }
+            <h1 class="display-4 fw-bold text-primary mb-3">@pageContent.TitleAr</h1>
+            @if (!string.IsNullOrEmpty(pageContent.TitleEn))
+            {
+                <h2 class="text-muted">@pageContent.TitleEn</h2>
+            }
+        </div>
+
+        <!-- Featured Image -->
+        @if (!string.IsNullOrEmpty(pageContent.FeaturedImagePath))
+        {
+            <div class="text-center mb-5">
+                <img src="@pageContent.FeaturedImagePath" alt="@pageContent.TitleAr" 
+                     class="img-fluid rounded shadow" style="max-height: 400px;" />
+            </div>
+        }
+
+        <!-- Page Content -->
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="content-area">
+                            @((MarkupString)pageContent.ContentAr)
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(pageContent.ContentEn))
+                        {
+                            <hr class="my-5" />
+                            <div class="content-area" dir="ltr" style="text-align: left;">
+                                @((MarkupString)pageContent.ContentEn)
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="text-center mt-5">
+            <a href="/" class="btn btn-outline-primary btn-lg">
+                <i class="bi bi-arrow-right"></i> العودة للرئيسية
+            </a>
+        </div>
+    }
+</div>
+
+<style>
+    .content-area {
+        font-size: 1.1rem;
+        line-height: 1.8;
+    }
+    
+    .content-area h1, .content-area h2, .content-area h3 {
+        color: #9B59B6;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .content-area p {
+        margin-bottom: 1.5rem;
+        text-align: justify;
+    }
+    
+    .content-area ul, .content-area ol {
+        margin-bottom: 1.5rem;
+        padding-right: 2rem;
+    }
+    
+    .content-area li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .content-area img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }
+</style>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+
+    private mas.Models.Page? pageContent;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPage();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadPage();
+    }
+
+    private async Task LoadPage()
+    {
+        loading = true;
+        try
+        {
+            pageContent = await Http.GetFromJsonAsync<mas.Models.Page>($"/api/Pages/slug/{Slug}");
+        }
+        catch (Exception)
+        {
+            pageContent = null;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}

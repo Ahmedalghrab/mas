@@ -1,0 +1,157 @@
+@rendermode InteractiveServer
+
+<div class="admin-sidebar bg-white shadow-sm" style="width: 280px; position: fixed; right: 0; top: 64px; height: calc(100vh - 64px); overflow-y: auto; z-index: 1090; border-left: 1px solid #e9ecef;">
+    <div class="p-3">
+        <h5 class="text-primary fw-bold mb-3">
+            <i class="bi bi-speedometer2"></i> لوحة التحكم
+        </h5>
+        
+        <div class="list-group list-group-flush">
+            <!-- Dashboard -->
+            <NavLink class="list-group-item list-group-item-action border-0" href="/admin" Match="NavLinkMatch.All">
+                <i class="bi bi-house-door me-2"></i> الرئيسية
+            </NavLink>
+
+            <!-- Content Management -->
+            <div class="mt-3 mb-2 px-3">
+                <small class="text-muted fw-bold">إدارة المحتوى</small>
+            </div>
+            
+            <NavLink class="list-group-item list-group-item-action border-0" href="/admin/pages">
+                <i class="bi bi-file-earmark-text me-2 text-info"></i> الصفحات
+            </NavLink>
+            
+            <NavLink class="list-group-item list-group-item-action border-0" href="/admin/home-content">
+                <i class="bi bi-house-heart me-2 text-warning"></i> الصفحة الرئيسية
+            </NavLink>
+
+            <!-- Products & Categories -->
+            <div class="mt-3 mb-2 px-3">
+                <small class="text-muted fw-bold">الخدمات والأقسام</small>
+            </div>
+            
+            <NavLink class="list-group-item list-group-item-action border-0" href="/admin/products">
+                <i class="bi bi-box-seam me-2 text-primary"></i> الخدمات
+            </NavLink>
+            
+            <NavLink class="list-group-item list-group-item-action border-0" href="/admin/categories">
+                <i class="bi bi-grid-3x3 me-2 text-success"></i> الأقسام
+            </NavLink>
+
+            <!-- Marketing & Messages -->
+            <div class="mt-3 mb-2 px-3">
+                <small class="text-muted fw-bold">التسويق والرسائل</small>
+            </div>
+            
+            <NavLink class="list-group-item list-group-item-action border-0" href="/admin/marketing">
+                <i class="bi bi-megaphone me-2 text-danger"></i> الحملات التسويقية
+            </NavLink>
+            
+            <NavLink class="list-group-item list-group-item-action border-0" href="/admin/contact">
+                <i class="bi bi-envelope me-2 text-info"></i> الرسائل
+                @if (unreadCount > 0)
+                {
+                    <span class="badge bg-danger rounded-pill float-start">@unreadCount</span>
+                }
+            </NavLink>
+
+            <!-- Settings -->
+            <div class="mt-3 mb-2 px-3">
+                <small class="text-muted fw-bold">الإعدادات</small>
+            </div>
+            
+            <NavLink class="list-group-item list-group-item-action border-0" href="/admin/settings">
+                <i class="bi bi-gear me-2 text-secondary"></i> إعدادات الموقع
+            </NavLink>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-sidebar .list-group-item {
+        padding: 0.85rem 1.25rem;
+        transition: all 0.3s ease;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+    }
+    
+    .admin-sidebar .list-group-item:hover {
+        background-color: #f8f9fa;
+        padding-right: 1.5rem;
+    }
+    
+    .admin-sidebar .list-group-item.active {
+        background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+    }
+    
+    .admin-sidebar .list-group-item.active i {
+        color: white !important;
+    }
+
+    /* Scrollbar styling */
+    .admin-sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .admin-sidebar::-webkit-scrollbar-track {
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+    
+    .admin-sidebar::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #9B59B6, #8E44AD);
+        border-radius: 10px;
+    }
+
+    .admin-sidebar::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #8E44AD, #7D3C98);
+    }
+
+    /* Category headers */
+    .admin-sidebar .text-muted {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 0.5rem;
+    }
+
+    /* Badge styling */
+    .admin-sidebar .badge {
+        font-size: 0.7rem;
+        padding: 0.35em 0.6em;
+    }
+</style>
+
+@code {
+    [Inject] private HttpClient Http { get; set; } = default!;
+    
+    private int unreadCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUnreadCount();
+    }
+
+    private async Task LoadUnreadCount()
+    {
+        try
+        {
+            var messages = await Http.GetFromJsonAsync<List<ContactMessageDto>>("/api/contact?isRead=false");
+            unreadCount = messages?.Count ?? 0;
+        }
+        catch
+        {
+            // Ignore errors
+        }
+    }
+
+    public class ContactMessageDto
+    {
+        public int Id { get; set; }
+        public bool IsRead { get; set; }
+    }
+}

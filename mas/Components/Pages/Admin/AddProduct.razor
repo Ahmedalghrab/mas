@@ -1,0 +1,501 @@
+@page "/admin/products/add"
+@page "/admin/products/edit/{id:int}"
+@using mas.Data
+@using mas.Models
+@using System.Net.Http.Json
+@using System.Net.Http.Headers
+@using SixLabors.ImageSharp
+@using SixLabors.ImageSharp.Formats.Jpeg
+@using SixLabors.ImageSharp.Processing
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<PageTitle>@(Id.HasValue ? "تعديل خدمة" : "إضافة خدمة جديدة") - لوحة التحكم</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="display-6 fw-bold mb-0">
+                    @if (Id.HasValue)
+                    {
+                        <i class="bi bi-pencil-square"></i> <text>تعديل خدمة</text>
+                    }
+                    else
+                    {
+                        <i class="bi bi-plus-circle"></i> <text>إضافة خدمة جديدة</text>
+                    }
+                </h1>
+
+                <a href="/admin/products" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-arrow-right"></i> رجوع
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="@product" OnValidSubmit="@HandleSubmit" FormName="productForm">
+            <DataAnnotationsValidator />
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name (Arabic) *</label>
+                            <InputText @bind-Value="product.NameAr" class="form-control" />
+                            <ValidationMessage For="@(() => product.NameAr)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Name (English) *</label>
+                            <InputText @bind-Value="product.NameEn" class="form-control" />
+                            <ValidationMessage For="@(() => product.NameEn)" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Description (Arabic) *</label>
+                            <InputTextArea @bind-Value="product.DescriptionAr" class="form-control" rows="4" />
+                            <ValidationMessage For="@(() => product.DescriptionAr)" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Description (English)</label>
+                            <InputTextArea @bind-Value="product.DescriptionEn" class="form-control" rows="4" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Pricing & Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Category *</label>
+                            <InputSelect @bind-Value="product.CategoryId" class="form-select">
+                                <option value="0">-- Select Category --</option>
+                                @foreach (var category in categories)
+                                {
+                                    <option value="@category.Id">@category.NameAr</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => product.CategoryId)" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Price (SAR) *</label>
+                            <InputNumber @bind-Value="product.Price" class="form-control" />
+                            <ValidationMessage For="@(() => product.Price)" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Discount Price (SAR)</label>
+                            <InputNumber @bind-Value="product.DiscountPrice" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Delivery Time (Days)</label>
+                            <InputNumber @bind-Value="product.DeliveryTimeDays" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Display Order</label>
+                            <InputNumber @bind-Value="product.DisplayOrder" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Image</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Product Image</label>
+                            <InputFile OnChange="@HandleImageSelected" class="form-control" accept="image/*" />
+                            <small class="text-muted">Max size: 10MB. Recommended: square images.</small>
+                        </div>
+                        @if (uploading)
+                        {
+                            <div class="col-12">
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">Uploading...</div>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(product.ImagePath))
+                        {
+                            <div class="col-12">
+                                <label class="form-label">Current Image:</label><br/>
+                                <img src="@product.ImagePath" alt="Product" class="img-thumbnail" style="max-width: 300px;" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">Contact Options</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">WhatsApp Number</label>
+                            <InputText @bind-Value="product.WhatsAppNumber" class="form-control" placeholder="+966xxxxxxxxx" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email Contact</label>
+                            <InputText @bind-Value="product.EmailContact" class="form-control" type="email" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <InputCheckbox @bind-Value="product.IsActive" class="form-check-input" id="isActive" />
+                                <label class="form-check-label" for="isActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <InputCheckbox @bind-Value="product.IsFeatured" class="form-check-input" id="isFeatured" />
+                                <label class="form-check-label" for="isFeatured">Featured (Show on Homepage)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> @errorMessage
+                </div>
+            }
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-lg" disabled="@saving">
+                    @if (saving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-save"></i> Save
+                </button>
+                <a href="/admin/products" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+    
+    [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private IDbContextFactory<ApplicationDbContext> DbFactory { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private IWebHostEnvironment Environment { get; set; } = default!;
+    [Inject] private ILogger<AddProduct> Logger { get; set; } = default!;
+
+    private const long MaxUploadBytes = 10 * 1024 * 1024;
+    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".gif", ".webp"
+    };
+
+    private ProductFormModel product = new();
+    private List<CategoryDto> categories = new();
+    private bool loading = true;
+    private bool saving = false;
+    private bool uploading = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+        if (Id.HasValue)
+        {
+            await LoadProduct();
+        }
+        loading = false;
+    }
+
+    private async Task LoadCategories()
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            categories = await db.Categories
+                .AsNoTracking()
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.NameAr)
+                .Select(c => new CategoryDto { Id = c.Id, NameAr = c.NameAr })
+                .ToListAsync();
+        }
+        catch { }
+    }
+
+    private async Task LoadProduct()
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var existingProduct = await db.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == Id!.Value);
+
+            if (existingProduct != null)
+            {
+                product = new ProductFormModel
+                {
+                    Id = existingProduct.Id,
+                    NameAr = existingProduct.NameAr,
+                    NameEn = existingProduct.NameEn,
+                    DescriptionAr = existingProduct.DescriptionAr,
+                    DescriptionEn = existingProduct.DescriptionEn,
+                    Price = existingProduct.Price,
+                    DiscountPrice = existingProduct.DiscountPrice,
+                    CategoryId = existingProduct.CategoryId,
+                    ImagePath = existingProduct.ImagePath,
+                    ThumbnailPath = existingProduct.ThumbnailPath,
+                    IsActive = existingProduct.IsActive,
+                    IsFeatured = existingProduct.IsFeatured,
+                    DisplayOrder = existingProduct.DisplayOrder,
+                    DeliveryTimeDays = existingProduct.DeliveryTimeDays,
+                    WhatsAppNumber = existingProduct.WhatsAppNumber,
+                    EmailContact = existingProduct.EmailContact
+                };
+            }
+        }
+        catch { }
+    }
+
+    private async Task HandleImageSelected(InputFileChangeEventArgs e)
+    {
+        uploading = true;
+        errorMessage = null;
+
+        try
+        {
+            var file = e.File;
+            if (file == null)
+            {
+                errorMessage = "لم يتم اختيار ملف";
+                return;
+            }
+
+            if (file.Size > MaxUploadBytes)
+            {
+                errorMessage = "حجم الملف أكبر من 10MB";
+                return;
+            }
+
+            var extension = Path.GetExtension(file.Name);
+            if (string.IsNullOrWhiteSpace(extension) || !AllowedImageExtensions.Contains(extension))
+            {
+                errorMessage = "نوع الملف غير مدعوم. الرجاء اختيار صورة (JPG/PNG/WebP...)";
+                return;
+            }
+
+            var uploadsFolder = Path.Combine(Environment.WebRootPath, "uploads", "products");
+            var thumbnailFolder = Path.Combine(Environment.WebRootPath, "uploads", "thumbnails");
+            Directory.CreateDirectory(uploadsFolder);
+            Directory.CreateDirectory(thumbnailFolder);
+
+            // Always store as JPEG for consistency
+            var fileName = $"{Guid.NewGuid()}.jpg";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            var thumbnailPath = Path.Combine(thumbnailFolder, fileName);
+
+            await using var readStream = file.OpenReadStream(MaxUploadBytes);
+            using var image = await Image.LoadAsync(readStream);
+
+            // Enhance + normalize + resize
+            image.Mutate(x => x
+                .AutoOrient()
+                .Resize(new ResizeOptions
+                {
+                    Size = new Size(1200, 1200),
+                    Mode = ResizeMode.Max
+                })
+                .GaussianSharpen(1.5f)
+                .Saturate(1.2f)
+                .Contrast(1.1f)
+                .Brightness(1.05f));
+
+            await image.SaveAsync(filePath, new JpegEncoder { Quality = 90 });
+
+            // Thumbnail
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new Size(300, 300),
+                Mode = ResizeMode.Crop
+            }));
+
+            await image.SaveAsync(thumbnailPath, new JpegEncoder { Quality = 85 });
+
+            product.ImagePath = $"/uploads/products/{fileName}";
+            product.ThumbnailPath = $"/uploads/thumbnails/{fileName}";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading image from admin UI");
+            errorMessage = $"خطأ رفع الصورة: {ex.Message}";
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        saving = true;
+        errorMessage = null;
+
+        try
+        {
+            if (product.CategoryId <= 0)
+            {
+                errorMessage = "Please select a category";
+                return;
+            }
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+
+            if (Id.HasValue)
+            {
+                var existing = await db.Products.FirstOrDefaultAsync(p => p.Id == Id.Value);
+                if (existing == null)
+                {
+                    errorMessage = "Product not found";
+                    return;
+                }
+
+                existing.NameAr = product.NameAr;
+                existing.NameEn = product.NameEn;
+                existing.DescriptionAr = product.DescriptionAr;
+                existing.DescriptionEn = product.DescriptionEn;
+                existing.Price = product.Price;
+                existing.DiscountPrice = product.DiscountPrice;
+                existing.CategoryId = product.CategoryId;
+                existing.ImagePath = product.ImagePath;
+                existing.ThumbnailPath = product.ThumbnailPath;
+                existing.IsActive = product.IsActive;
+                existing.IsFeatured = product.IsFeatured;
+                existing.DisplayOrder = product.DisplayOrder;
+                existing.DeliveryTimeDays = product.DeliveryTimeDays;
+                existing.WhatsAppNumber = product.WhatsAppNumber;
+                existing.EmailContact = product.EmailContact;
+                existing.UpdatedAt = DateTime.UtcNow;
+
+                await db.SaveChangesAsync();
+            }
+            else
+            {
+                var entity = new Product
+                {
+                    NameAr = product.NameAr,
+                    NameEn = product.NameEn,
+                    DescriptionAr = product.DescriptionAr,
+                    DescriptionEn = product.DescriptionEn,
+                    Price = product.Price,
+                    DiscountPrice = product.DiscountPrice,
+                    CategoryId = product.CategoryId,
+                    ImagePath = product.ImagePath,
+                    ThumbnailPath = product.ThumbnailPath,
+                    IsActive = product.IsActive,
+                    IsFeatured = product.IsFeatured,
+                    DisplayOrder = product.DisplayOrder,
+                    DeliveryTimeDays = product.DeliveryTimeDays,
+                    WhatsAppNumber = product.WhatsAppNumber,
+                    EmailContact = product.EmailContact,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                db.Products.Add(entity);
+                await db.SaveChangesAsync();
+            }
+
+            Navigation.NavigateTo("/admin/products");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    public class ProductFormModel
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public string DescriptionAr { get; set; } = "";
+        public string? DescriptionEn { get; set; }
+        public decimal Price { get; set; }
+        public decimal? DiscountPrice { get; set; }
+        public int CategoryId { get; set; }
+        public string? ImagePath { get; set; }
+        public string? ThumbnailPath { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool IsFeatured { get; set; }
+        public int DisplayOrder { get; set; }
+        public int? DeliveryTimeDays { get; set; }
+        public string? WhatsAppNumber { get; set; }
+        public string? EmailContact { get; set; }
+    }
+
+    public class ProductDto
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public string DescriptionAr { get; set; } = "";
+        public string? DescriptionEn { get; set; }
+        public decimal Price { get; set; }
+        public decimal? DiscountPrice { get; set; }
+        public int CategoryId { get; set; }
+        public string? ImagePath { get; set; }
+        public string? ThumbnailPath { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsFeatured { get; set; }
+        public int DisplayOrder { get; set; }
+        public int? DeliveryTimeDays { get; set; }
+        public string? WhatsAppNumber { get; set; }
+        public string? EmailContact { get; set; }
+    }
+
+    public class CategoryDto
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+    }
+
+    public class ImageUploadResponse
+    {
+        public string ImagePath { get; set; } = "";
+        public string ThumbnailPath { get; set; } = "";
+        public string FileName { get; set; } = "";
+    }
+}

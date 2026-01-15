@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    
+    <!-- Preload Arabic Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="css/arabic-fonts.css" />
+    <link rel="stylesheet" href="css/arabic-styles.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="mas.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet />
+    
+    <!-- Inline Critical CSS for Arabic Fonts -->
+    <style>
+        /* Force Arabic fonts immediately */
+  * {
+            font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Arial', sans-serif !important;
+      }
+     
+body {
+            font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Arial', sans-serif !important;
+        }
+        
+        /* Ensure all text elements use Arabic fonts */
+    h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select, label {
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Arial', sans-serif !important;
+   }
+      
+        /* Fix Bootstrap Icons */
+        .bi::before, [class*="bi-"]::before {
+            font-family: "bootstrap-icons" !important;
+        }
+    </style>
+</head>
+
+<body>
+    <Routes />
+    <script src="_framework/blazor.web.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Force Arabic Font Loading Script -->
+    <script>
+   (function() {
+         // Ensure fonts are loaded
+ if (document.fonts && document.fonts.ready) {
+     document.fonts.ready.then(function() {
+        console.log('✅ Arabic fonts loaded successfully');
+    applyFonts();
+      });
+   }
+      
+   // Fallback font application
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyFonts);
+  } else {
+    applyFonts();
+       }
+ 
+       function applyFonts() {
+  document.body.style.fontFamily = "'Cairo', 'Tajawal', 'Segoe UI', 'Arial', sans-serif";
+   
+  // Apply to all elements (except Bootstrap Icons)
+  var allElements = document.querySelectorAll('*:not(.bi):not([class*="bi-"])');
+     allElements.forEach(function(el) {
+           // Check if element has className and it's a string
+      if (el.className && typeof el.className === 'string') {
+     // Skip if element has Bootstrap Icons classes
+      if (!el.className.includes('bi') && !el.className.includes('bootstrap-icons')) {
+      el.style.fontFamily = "'Cairo', 'Tajawal', 'Segoe UI', 'Arial', sans-serif";
+         }
+  } else if (!el.className) {
+       // Apply font to elements without className
+   el.style.fontFamily = "'Cairo', 'Tajawal', 'Segoe UI', 'Arial', sans-serif";
+    }
+    });
+  
+   console.log('✅ Arabic fonts applied to all elements');
+  }
+   
+            // Reapply fonts after Blazor renders
+    if (window.Blazor) {
+         window.Blazor.addEventListener('enhancedload', applyFonts);
+            }
+  
+   // Fallback: reapply every 500ms for first 3 seconds
+   var attempts = 0;
+  var interval = setInterval(function() {
+      if (attempts++ < 6) {
+      applyFonts();
+  } else {
+  clearInterval(interval);
+  }
+     }, 500);
+  })();
+    </script>
+</body>
+
+</html>

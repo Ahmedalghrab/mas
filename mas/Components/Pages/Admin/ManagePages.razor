@@ -1,0 +1,365 @@
+@page "/admin/pages"
+@using mas.Models
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<PageTitle>إدارة الصفحات - لوحة التحكم</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary">
+            <i class="bi bi-file-earmark-text"></i> إدارة الصفحات
+        </h2>
+        <button class="btn btn-primary btn-lg" @onclick="ShowAddModal">
+            <i class="bi bi-plus-circle"></i> إضافة صفحة جديدة
+        </button>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    }
+    else if (pages == null || !pages.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> لا توجد صفحات حالياً. ابدأ بإضافة صفحة جديدة!
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>العنوان</th>
+                                <th>الرابط (Slug)</th>
+                                <th>الحالة</th>
+                                <th>في القائمة</th>
+                                <th>الترتيب</th>
+                                <th>تاريخ الإنشاء</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var pageItem in pages)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@pageItem.TitleAr</strong>
+                                        @if (!string.IsNullOrEmpty(pageItem.IconClass))
+                                        {
+                                            <i class="@pageItem.IconClass text-muted ms-2"></i>
+                                        }
+                                    </td>
+                                    <td><code>@pageItem.Slug</code></td>
+                                    <td>
+                                        @if (pageItem.IsPublished)
+                                        {
+                                            <span class="badge bg-success">منشور</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">مسودة</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (pageItem.ShowInMenu)
+                                        {
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-x-circle text-muted"></i>
+                                        }
+                                    </td>
+                                    <td>@pageItem.DisplayOrder</td>
+                                    <td>@pageItem.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditPage(pageItem)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePage(pageItem.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <a href="/page/@pageItem.Slug" target="_blank" class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Add/Edit Modal -->
+    @if (showModal)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            @if (editingPage?.Id == 0)
+                            {
+                                <text>إضافة صفحة جديدة</text>
+                            }
+                            else
+                            {
+                                <text>تعديل الصفحة</text>
+                            }
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show">
+                                <i class="bi bi-exclamation-triangle"></i> @errorMessage
+                                <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+                            </div>
+                        }
+                        
+                        @if (editingPage != null)
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">العنوان بالعربية *</label>
+                                    <input type="text" class="form-control" @bind="editingPage.TitleAr" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">العنوان بالإنجليزية</label>
+                                    <input type="text" class="form-control" @bind="editingPage.TitleEn" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">الرابط المخصص (Slug) *</label>
+                                    <input type="text" class="form-control" @bind="editingPage.Slug" 
+                                           placeholder="about-us" />
+                                    <small class="text-muted">سيكون الرابط: /page/@(editingPage.Slug ?? "slug")</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">الترتيب</label>
+                                    <input type="number" class="form-control" @bind="editingPage.DisplayOrder" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">الأيقونة</label>
+                                    <input type="text" class="form-control" @bind="editingPage.IconClass" 
+                                           placeholder="bi-info-circle" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">المحتوى بالعربية *</label>
+                                    <textarea class="form-control" rows="10" @bind="editingPage.ContentAr"></textarea>
+                                    <small class="text-muted">يدعم HTML</small>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">المحتوى بالإنجليزية</label>
+                                    <textarea class="form-control" rows="10" @bind="editingPage.ContentEn"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">الوصف (SEO) - عربي</label>
+                                    <textarea class="form-control" rows="2" @bind="editingPage.MetaDescriptionAr"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">الوصف (SEO) - إنجليزي</label>
+                                    <textarea class="form-control" rows="2" @bind="editingPage.MetaDescriptionEn"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">الكلمات المفتاحية (SEO)</label>
+                                    <input type="text" class="form-control" @bind="editingPage.MetaKeywords" 
+                                           placeholder="خدمات, طلاب, أبحاث" />
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" @bind="editingPage.IsPublished" />
+                                        <label class="form-check-label fw-bold">منشور</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" @bind="editingPage.ShowInMenu" />
+                                        <label class="form-check-label fw-bold">ظهور في القائمة</label>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">إلغاء</button>
+                        <button type="button" class="btn btn-primary" @onclick="SavePage" disabled="@saving">
+                            @if (saving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            <i class="bi bi-save"></i> حفظ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    private List<Page>? pages;
+    private Page? editingPage;
+    private bool loading = true;
+    private bool showModal = false;
+    private bool saving = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPages();
+    }
+
+    private async Task LoadPages()
+    {
+        loading = true;
+        try
+        {
+            pages = await Http.GetFromJsonAsync<List<Page>>("/api/Pages");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading pages: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ShowAddModal()
+    {
+        editingPage = new Page
+        {
+            TitleAr = "",
+            Slug = "",
+            ContentAr = "",
+            IsPublished = true,
+            ShowInMenu = false,
+            DisplayOrder = 0
+        };
+        showModal = true;
+    }
+
+    private void EditPage(Page pageItem)
+    {
+        editingPage = new Page
+        {
+            Id = pageItem.Id,
+            TitleAr = pageItem.TitleAr,
+            TitleEn = pageItem.TitleEn,
+            Slug = pageItem.Slug,
+            ContentAr = pageItem.ContentAr,
+            ContentEn = pageItem.ContentEn,
+            MetaDescriptionAr = pageItem.MetaDescriptionAr,
+            MetaDescriptionEn = pageItem.MetaDescriptionEn,
+            MetaKeywords = pageItem.MetaKeywords,
+            IconClass = pageItem.IconClass,
+            DisplayOrder = pageItem.DisplayOrder,
+            IsPublished = pageItem.IsPublished,
+            ShowInMenu = pageItem.ShowInMenu,
+            CreatedAt = pageItem.CreatedAt
+        };
+        showModal = true;
+    }
+
+    private async Task SavePage()
+    {
+        if (editingPage == null) return;
+
+        // Validation
+        if (string.IsNullOrWhiteSpace(editingPage.TitleAr))
+        {
+            errorMessage = "العنوان بالعربية مطلوب";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editingPage.Slug))
+        {
+            errorMessage = "الرابط المخصص (Slug) مطلوب";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editingPage.ContentAr))
+        {
+            errorMessage = "المحتوى بالعربية مطلوب";
+            return;
+        }
+
+        saving = true;
+        errorMessage = null;
+        
+        try
+        {
+            HttpResponseMessage response;
+            if (editingPage.Id == 0)
+            {
+                response = await Http.PostAsJsonAsync("/api/Pages", editingPage);
+            }
+            else
+            {
+                response = await Http.PutAsJsonAsync($"/api/Pages/{editingPage.Id}", editingPage);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadPages();
+                CloseModal();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = $"خطأ: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"خطأ في الحفظ: {ex.Message}";
+            Console.WriteLine($"Error saving page: {ex.Message}");
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task DeletePage(int id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "هل أنت متأكد من حذف هذه الصفحة؟"))
+            return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"/api/Pages/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadPages();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting page: {ex.Message}");
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        editingPage = null;
+    }
+}

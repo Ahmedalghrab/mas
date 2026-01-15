@@ -1,0 +1,297 @@
+@page "/services/{id:int}"
+@rendermode InteractiveServer
+
+<PageTitle>@(product?.NameAr ?? "تفاصيل الخدمة") - الماسة للخدمات</PageTitle>
+
+<div class="container py-5">
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    }
+    else if (product == null)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i> لم يتم العثور على الخدمة
+        </div>
+        <a href="/services" class="btn btn-primary">
+            <i class="bi bi-arrow-right"></i> العودة للخدمات
+        </a>
+    }
+    else
+    {
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">الرئيسية</a></li>
+                <li class="breadcrumb-item"><a href="/services">الخدمات</a></li>
+                <li class="breadcrumb-item active">@product.NameAr</li>
+            </ol>
+        </nav>
+
+        <div class="row g-4">
+            <!-- Product Image -->
+            <div class="col-lg-6">
+                @if (!string.IsNullOrEmpty(product.ImagePath))
+                {
+                    <img src="@product.ImagePath" alt="@product.NameAr" 
+                         class="img-fluid rounded shadow-lg w-100" style="max-height: 500px; object-fit: cover;" />
+                }
+                else
+                {
+                    <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                         style="height: 500px;">
+                        <i class="bi bi-image text-muted" style="font-size: 6rem;"></i>
+                    </div>
+                }
+            </div>
+
+            <!-- Product Details -->
+            <div class="col-lg-6">
+                <div class="mb-3">
+                    @if (!string.IsNullOrEmpty(product.Category?.NameAr))
+                    {
+                        <span class="badge bg-primary fs-6 px-3 py-2">
+                            <i class="@product.Category.IconClass"></i> @product.Category.NameAr
+                        </span>
+                    }
+                    @if (product.IsFeatured)
+                    {
+                        <span class="badge bg-warning text-dark fs-6 px-3 py-2 me-2">
+                            <i class="bi bi-star-fill"></i> خدمة مميزة
+                        </span>
+                    }
+                </div>
+
+                <h1 class="display-5 fw-bold text-primary mb-3">@product.NameAr</h1>
+                <h4 class="text-muted mb-4">@product.NameEn</h4>
+
+                <div class="mb-4">
+                    @if (product.DiscountPrice.HasValue)
+                    {
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-decoration-line-through text-muted fs-4">
+                                @product.Price.ToString("N0") ر.س
+                            </span>
+                            <span class="display-4 fw-bold text-danger">
+                                @product.DiscountPrice.Value.ToString("N0") ر.س
+                            </span>
+                            <span class="badge bg-danger fs-6 px-3 py-2">
+                                خصم @(((product.Price - product.DiscountPrice.Value) / product.Price * 100).ToString("N0"))%
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <span class="display-4 fw-bold text-primary">@product.Price.ToString("N0") ر.س</span>
+                    }
+                </div>
+
+                <div class="card border-0 bg-light mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold mb-3">
+                            <i class="bi bi-info-circle text-primary"></i> مواصفات الخدمة
+                        </h5>
+                        <ul class="list-unstyled mb-0">
+                            @if (product.DeliveryTimeDays.HasValue)
+                            {
+                                <li class="mb-2">
+                                    <i class="bi bi-clock text-primary"></i>
+                                    <strong>مدة التسليم:</strong> @product.DeliveryTimeDays يوم
+                                </li>
+                            }
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
+                                <strong>الجودة:</strong> عالية ومضمونة
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-shield-check text-info"></i>
+                                <strong>ضمان الجودة:</strong> نلتزم بما نعد به دائماً
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-3 mb-4">
+                    @if (!string.IsNullOrEmpty(product.WhatsAppNumber))
+                    {
+                        <a href="https://wa.me/@product.WhatsAppNumber" target="_blank" 
+                           class="btn btn-success btn-lg">
+                            <i class="bi bi-whatsapp"></i> اطلب عبر الواتساب
+                        </a>
+                    }
+                    @if (!string.IsNullOrEmpty(product.EmailContact))
+                    {
+                        <a href="mailto:@product.EmailContact" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-envelope"></i> راسلنا عبر البريد
+                        </a>
+                    }
+                    @if (string.IsNullOrEmpty(product.WhatsAppNumber) && string.IsNullOrEmpty(product.EmailContact))
+                    {
+                        <a href="https://wa.me/966500000000" target="_blank" class="btn btn-success btn-lg">
+                            <i class="bi bi-whatsapp"></i> تواصل معنا الآن
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Description Section -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0"><i class="bi bi-file-text"></i> عن الخدمة</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="description-content">
+                            <h5 class="fw-bold text-primary mb-3">مواصفات تفصيلية:</h5>
+                            <p class="lead text-justify" style="white-space: pre-wrap;">@product.DescriptionAr</p>
+                            
+                            @if (!string.IsNullOrEmpty(product.DescriptionEn))
+                            {
+                                <hr class="my-4" />
+                                <h5 class="fw-bold text-primary mb-3">Description in English:</h5>
+                                <p class="text-justify" style="white-space: pre-wrap; direction: ltr; text-align: left;">@product.DescriptionEn</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Products -->
+        @if (relatedProducts != null && relatedProducts.Any())
+        {
+            <div class="row mt-5">
+                <div class="col-12">
+                    <h3 class="fw-bold text-primary mb-4">
+                        <i class="bi bi-grid"></i> خدمات ذات صلة
+                    </h3>
+                </div>
+                @foreach (var related in relatedProducts)
+                {
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card product-card h-100 shadow-sm border-0 hover-lift">
+                            @if (!string.IsNullOrEmpty(related.ImagePath))
+                            {
+                                <img src="@related.ImagePath" class="card-img-top" alt="@related.NameAr" 
+                                     style="height: 200px; object-fit: cover;" />
+                            }
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold">@related.NameAr</h5>
+                                <p class="card-text text-muted">
+                                    @(related.DescriptionAr.Length > 80 
+                                        ? related.DescriptionAr.Substring(0, 80) + "..." 
+                                        : related.DescriptionAr)
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fs-5 fw-bold text-primary">
+                                        @(related.DiscountPrice ?? related.Price).ToString("N0") ر.س
+                                    </span>
+                                    <a href="/services/@related.Id" class="btn btn-outline-primary btn-sm">
+                                        التفاصيل
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="text-center mt-4">
+            <a href="/services" class="btn btn-outline-primary btn-lg">
+                <i class="bi bi-arrow-right"></i> العودة لجميع الخدمات
+            </a>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private ProductDetailDto? product;
+    private List<ProductDto>? relatedProducts;
+    private bool loading = true;
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProduct();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadProduct();
+    }
+
+    private async Task LoadProduct()
+    {
+        loading = true;
+        try
+        {
+            product = await Http.GetFromJsonAsync<ProductDetailDto>($"/api/products/{Id}");
+            
+            if (product != null)
+            {
+                // Load related products from same category
+                var allProducts = await Http.GetFromJsonAsync<List<ProductDto>>(
+                    $"/api/products?categoryId={product.CategoryId}&isActive=true");
+                
+                relatedProducts = allProducts?
+                    .Where(p => p.Id != Id)
+                    .Take(3)
+                    .ToList();
+            }
+        }
+        catch (Exception)
+        {
+            product = null;
+            relatedProducts = null;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    public class ProductDetailDto
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public string DescriptionAr { get; set; } = "";
+        public string? DescriptionEn { get; set; }
+        public decimal Price { get; set; }
+        public decimal? DiscountPrice { get; set; }
+        public string? ImagePath { get; set; }
+        public int CategoryId { get; set; }
+        public CategoryDto? Category { get; set; }
+        public bool IsFeatured { get; set; }
+        public int? DeliveryTimeDays { get; set; }
+        public string? WhatsAppNumber { get; set; }
+        public string? EmailContact { get; set; }
+    }
+
+    public class ProductDto
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string DescriptionAr { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? DiscountPrice { get; set; }
+        public string? ImagePath { get; set; }
+    }
+
+    public class CategoryDto
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string? IconClass { get; set; }
+    }
+}

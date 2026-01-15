@@ -1,0 +1,322 @@
+@page "/admin/home-content"
+@using mas.Models
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<PageTitle>إدارة محتوى الصفحة الرئيسية - لوحة التحكم</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary">
+            <i class="bi bi-house-door"></i> إدارة محتوى الصفحة الرئيسية
+        </h2>
+        <button class="btn btn-success btn-lg" @onclick="SaveContent" disabled="@saving">
+            @if (saving)
+            {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+            }
+            <i class="bi bi-save"></i> حفظ التغييرات
+        </button>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    }
+    else if (content != null)
+    {
+        <div class="row g-4">
+            <!-- Hero Section -->
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="bi bi-star-fill"></i> قسم Hero (البطل)</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">العنوان الرئيسي - عربي</label>
+                                <input type="text" class="form-control" @bind="content.HeroTitleAr" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">العنوان الرئيسي - English</label>
+                                <input type="text" class="form-control" @bind="content.HeroTitleEn" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">العنوان الفرعي - عربي</label>
+                                <textarea class="form-control" rows="2" @bind="content.HeroSubtitleAr"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">العنوان الفرعي - English</label>
+                                <textarea class="form-control" rows="2" @bind="content.HeroSubtitleEn"></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">نص الزر - عربي</label>
+                                <input type="text" class="form-control" @bind="content.HeroButtonTextAr" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">نص الزر - English</label>
+                                <input type="text" class="form-control" @bind="content.HeroButtonTextEn" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">رابط الزر</label>
+                                <input type="text" class="form-control" @bind="content.HeroButtonLink" placeholder="/services" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="mb-0"><i class="bi bi-grid-3x3"></i> قسم المميزات</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">عنوان القسم - عربي</label>
+                                <input type="text" class="form-control" @bind="content.FeaturesSectionTitleAr" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">عنوان القسم - English</label>
+                                <input type="text" class="form-control" @bind="content.FeaturesSectionTitleEn" />
+                            </div>
+                        </div>
+
+                        <hr />
+                        
+                        <!-- Feature 1 -->
+                        <h5 class="text-primary mb-3">ميزة 1</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">العنوان - عربي</label>
+                                <input type="text" class="form-control" @bind="content.Feature1TitleAr" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">العنوان - English</label>
+                                <input type="text" class="form-control" @bind="content.Feature1TitleEn" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">الأيقونة</label>
+                                <input type="text" class="form-control" @bind="content.Feature1Icon" placeholder="bi-check-circle" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف - عربي</label>
+                                <textarea class="form-control" rows="2" @bind="content.Feature1DescriptionAr"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف - English</label>
+                                <textarea class="form-control" rows="2" @bind="content.Feature1DescriptionEn"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Feature 2 -->
+                        <h5 class="text-primary mb-3">ميزة 2</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">العنوان - عربي</label>
+                                <input type="text" class="form-control" @bind="content.Feature2TitleAr" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">العنوان - English</label>
+                                <input type="text" class="form-control" @bind="content.Feature2TitleEn" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">الأيقونة</label>
+                                <input type="text" class="form-control" @bind="content.Feature2Icon" placeholder="bi-lightning" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف - عربي</label>
+                                <textarea class="form-control" rows="2" @bind="content.Feature2DescriptionAr"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف - English</label>
+                                <textarea class="form-control" rows="2" @bind="content.Feature2DescriptionEn"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Feature 3 -->
+                        <h5 class="text-primary mb-3">ميزة 3</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">العنوان - عربي</label>
+                                <input type="text" class="form-control" @bind="content.Feature3TitleAr" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">العنوان - English</label>
+                                <input type="text" class="form-control" @bind="content.Feature3TitleEn" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">الأيقونة</label>
+                                <input type="text" class="form-control" @bind="content.Feature3Icon" placeholder="bi-shield-check" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف - عربي</label>
+                                <textarea class="form-control" rows="2" @bind="content.Feature3DescriptionAr"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف - English</label>
+                                <textarea class="form-control" rows="2" @bind="content.Feature3DescriptionEn"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Feature 4 -->
+                        <h5 class="text-primary mb-3">ميزة 4</h5>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">العنوان - عربي</label>
+                                <input type="text" class="form-control" @bind="content.Feature4TitleAr" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">العنوان - English</label>
+                                <input type="text" class="form-control" @bind="content.Feature4TitleEn" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">الأيقونة</label>
+                                <input type="text" class="form-control" @bind="content.Feature4Icon" placeholder="bi-people" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف - عربي</label>
+                                <textarea class="form-control" rows="2" @bind="content.Feature4DescriptionAr"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الوصف - English</label>
+                                <textarea class="form-control" rows="2" @bind="content.Feature4DescriptionEn"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Section -->
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0"><i class="bi bi-briefcase"></i> قسم الخدمات</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">عنوان القسم - عربي</label>
+                                <input type="text" class="form-control" @bind="content.ServicesSectionTitleAr" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">عنوان القسم - English</label>
+                                <input type="text" class="form-control" @bind="content.ServicesSectionTitleEn" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">العنوان الفرعي - عربي</label>
+                                <textarea class="form-control" rows="2" @bind="content.ServicesSectionSubtitleAr"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">العنوان الفرعي - English</label>
+                                <textarea class="form-control" rows="2" @bind="content.ServicesSectionSubtitleEn"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Section -->
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning">
+                        <h4 class="mb-0"><i class="bi bi-info-circle"></i> قسم عن المنصة</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">عنوان القسم - عربي</label>
+                                <input type="text" class="form-control" @bind="content.AboutSectionTitleAr" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">عنوان القسم - English</label>
+                                <input type="text" class="form-control" @bind="content.AboutSectionTitleEn" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">المحتوى - عربي</label>
+                                <textarea class="form-control" rows="4" @bind="content.AboutSectionContentAr"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">المحتوى - English</label>
+                                <textarea class="form-control" rows="4" @bind="content.AboutSectionContentEn"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show mt-4" role="alert">
+                <i class="bi bi-check-circle"></i> @successMessage
+                <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Inject] private HttpClient Http { get; set; } = default!;
+
+    private HomeContent? content;
+    private bool loading = true;
+    private bool saving = false;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadContent();
+    }
+
+    private async Task LoadContent()
+    {
+        loading = true;
+        try
+        {
+            content = await Http.GetFromJsonAsync<HomeContent>("/api/HomeContent");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading content: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SaveContent()
+    {
+        if (content == null) return;
+
+        saving = true;
+        successMessage = null;
+        try
+        {
+            var response = await Http.PutAsJsonAsync("/api/HomeContent", content);
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "تم حفظ التغييرات بنجاح!";
+                await Task.Delay(3000);
+                successMessage = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving content: {ex.Message}");
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+}

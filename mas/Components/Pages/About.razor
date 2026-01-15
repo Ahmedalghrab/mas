@@ -1,0 +1,143 @@
+@page "/about"
+@rendermode InteractiveServer
+@inject mas.Services.LanguageService Lang
+
+<PageTitle>@Lang.Get("about_title") - ALMASS</PageTitle>
+
+<div class="about-page" dir="@Lang.Direction">
+    <section class="about-hero py-5 text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 text-center @(Lang.IsArabic ? "text-lg-start" : "text-lg-start")">
+                    <h1 class="display-3 fw-bold mb-4">@Lang.Get("about_title")</h1>
+                    <p class="lead mb-0">@Lang.Get("about_desc")</p>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <i class="bi bi-people-fill" style="font-size: 12rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-lg">
+                        <div class="card-body p-4 text-center">
+                            <div class="mb-4">
+                                <div class="bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px;">
+                                    <i class="bi bi-eye fs-1 text-primary"></i>
+                                </div>
+                            </div>
+                            <h3 class="fw-bold text-primary mb-3">@Lang.Get("vision")</h3>
+                            <p class="text-muted lead">@Lang.Get("vision_desc")</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-lg">
+                        <div class="card-body p-4 text-center">
+                            <div class="mb-4">
+                                <div class="bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px;">
+                                    <i class="bi bi-bullseye fs-1 text-success"></i>
+                                </div>
+                            </div>
+                            <h3 class="fw-bold text-success mb-3">@Lang.Get("mission")</h3>
+                            <p class="text-muted lead">@Lang.Get("mission_desc")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold text-primary mb-3">@Lang.Get("why_choose_us")</h2>
+                <p class="lead text-muted">@Lang.Get("why_choose_desc")</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3 text-center p-4">
+                    <i class="bi bi-shield-check text-primary" style="font-size: 3rem;"></i>
+                    <h5 class="fw-bold mt-3 mb-2">@Lang.Get("high_quality")</h5>
+                    <p class="text-muted">@Lang.Get("high_quality_desc")</p>
+                </div>
+                <div class="col-md-6 col-lg-3 text-center p-4">
+                    <i class="bi bi-clock-history text-success" style="font-size: 3rem;"></i>
+                    <h5 class="fw-bold mt-3 mb-2">@Lang.Get("on_time")</h5>
+                    <p class="text-muted">@Lang.Get("on_time_desc")</p>
+                </div>
+                <div class="col-md-6 col-lg-3 text-center p-4">
+                    <i class="bi bi-people text-info" style="font-size: 3rem;"></i>
+                    <h5 class="fw-bold mt-3 mb-2">@Lang.Get("expert_team")</h5>
+                    <p class="text-muted">@Lang.Get("expert_team_desc")</p>
+                </div>
+                <div class="col-md-6 col-lg-3 text-center p-4">
+                    <i class="bi bi-cash-coin text-warning" style="font-size: 3rem;"></i>
+                    <h5 class="fw-bold mt-3 mb-2">@Lang.Get("affordable")</h5>
+                    <p class="text-muted">@Lang.Get("affordable_desc")</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-primary text-white">
+        <div class="container">
+            <div class="row text-center g-4">
+                <div class="col-md-3">
+                    <i class="bi bi-people-fill fs-1 mb-3"></i>
+                    <h2 class="display-4 fw-bold">500+</h2>
+                    <p class="lead">@Lang.Get("happy_clients")</p>
+                </div>
+                <div class="col-md-3">
+                    <i class="bi bi-box-seam fs-1 mb-3"></i>
+                    <h2 class="display-4 fw-bold">1200+</h2>
+                    <p class="lead">@Lang.Get("completed_projects")</p>
+                </div>
+                <div class="col-md-3">
+                    <i class="bi bi-star-fill fs-1 mb-3"></i>
+                    <h2 class="display-4 fw-bold">4.9</h2>
+                    <p class="lead">@Lang.Get("rating")</p>
+                </div>
+                <div class="col-md-3">
+                    <i class="bi bi-award-fill fs-1 mb-3"></i>
+                    <h2 class="display-4 fw-bold">5+</h2>
+                    <p class="lead">@Lang.Get("years_exp")</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5">
+        <div class="container">
+            <div class="card border-0 shadow-lg text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body p-5 text-center">
+                    <h2 class="display-5 fw-bold mb-4">@Lang.Get("have_question")</h2>
+                    <p class="lead mb-4">@Lang.Get("here_to_help")</p>
+                    <div class="d-flex gap-3 justify-content-center flex-wrap">
+                        <a href="https://wa.me/966500000000" class="btn btn-light btn-lg px-5" target="_blank">
+                            <i class="bi bi-whatsapp"></i> @Lang.Get("whatsapp_contact")
+                        </a>
+                        <a href="mailto:info@almass.com" class="btn btn-outline-light btn-lg px-5">
+                            <i class="bi bi-envelope"></i> @Lang.Get("email_us")
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Lang.OnLanguageChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Lang.OnLanguageChanged -= StateHasChanged;
+    }
+}

@@ -1,0 +1,215 @@
+@page "/admin/products"
+@using mas.Data
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<PageTitle>إدارة الخدمات - لوحة التحكم</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-5">
+                    <i class="bi bi-box-seam"></i> إدارة الخدمات
+                </h1>
+                <a href="/admin/products/add" class="btn btn-primary btn-lg">
+                    <i class="bi bi-plus-circle"></i> إضافة خدمة جديدة
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (products == null || !products.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-3"></i>
+            <p class="mt-2 mb-0">No products found. Click "Add New Product" to start.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Image</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Featured</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var product in products)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(product.ThumbnailPath))
+                                        {
+                                            <img src="@product.ThumbnailPath" alt="@product.NameAr" 
+                                                class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="bg-light text-center" style="width: 60px; height: 60px; line-height: 60px;">
+                                                <i class="bi bi-image text-muted"></i>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong>@product.NameAr</strong><br/>
+                                        <small class="text-muted">@product.NameEn</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@product.Category?.NameAr</span>
+                                    </td>
+                                    <td>
+                                        @if (product.DiscountPrice.HasValue)
+                                        {
+                                            <span class="text-decoration-line-through text-muted">@product.Price.ToString("N0") SAR</span><br/>
+                                            <strong class="text-danger">@product.DiscountPrice.Value.ToString("N0") SAR</strong>
+                                        }
+                                        else
+                                        {
+                                            <strong>@product.Price.ToString("N0") SAR</strong>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (product.IsActive)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (product.IsFeatured)
+                                        {
+                                            <i class="bi bi-star-fill text-warning"></i>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="/admin/products/edit/@product.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteProduct(product.Id)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ProductDto>? products;
+    private bool loading = true;
+
+    [Inject] private IDbContextFactory<ApplicationDbContext> DbFactory { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        loading = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            products = await db.Products
+                .AsNoTracking()
+                .Include(p => p.Category)
+                .OrderBy(p => p.DisplayOrder)
+                .Select(p => new ProductDto
+                {
+                    Id = p.Id,
+                    NameAr = p.NameAr,
+                    NameEn = p.NameEn,
+                    Price = p.Price,
+                    DiscountPrice = p.DiscountPrice,
+                    ThumbnailPath = p.ThumbnailPath,
+                    IsActive = p.IsActive,
+                    IsFeatured = p.IsFeatured,
+                    Category = new CategoryDto
+                    {
+                        Id = p.CategoryId,
+                        NameAr = p.Category.NameAr
+                    }
+                })
+                .ToListAsync();
+        }
+        catch
+        {
+            products = new List<ProductDto>();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task DeleteProduct(int id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this product?"))
+            return;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var entity = await db.Products.FindAsync(id);
+            if (entity == null)
+                return;
+
+            db.Products.Remove(entity);
+            await db.SaveChangesAsync();
+
+            await LoadProducts();
+        }
+        catch { }
+    }
+
+    public class ProductDto
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+        public string NameEn { get; set; } = "";
+        public decimal Price { get; set; }
+        public decimal? DiscountPrice { get; set; }
+        public string? ThumbnailPath { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsFeatured { get; set; }
+        public CategoryDto? Category { get; set; }
+    }
+
+    public class CategoryDto
+    {
+        public int Id { get; set; }
+        public string NameAr { get; set; } = "";
+    }
+}

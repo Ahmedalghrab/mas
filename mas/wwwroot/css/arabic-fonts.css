@@ -1,0 +1,48 @@
+/* Force UTF-8 encoding */
+@charset "UTF-8";
+
+/* Arabic Font Stack - Best quality fonts for Arabic */
+@font-face {
+ font-family: 'Arabic';
+    src: local('Cairo'), local('Tajawal'), local('Noto Sans Arabic'), local('Arial');
+    unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+/* Override all text to use proper Arabic fonts */
+html, body {
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure all Arabic characters use proper fonts */
+:lang(ar), [lang="ar"], [dir="rtl"] {
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+}
+
+/* Specific elements that might show ??? */
+h1, h2, h3, h4, h5, h6,
+p, span, div, a, button,
+.card-title, .card-text,
+.nav-link, .btn,
+.form-label, .form-control,
+input, textarea, select {
+    font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+}
+
+/* Fix for potential encoding issues */
+meta[charset] {
+    content: "utf-8" !important;
+}
+
+/* Ensure proper text rendering */
+* {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fix for Bootstrap Icons not interfering with Arabic text */
+.bi::before, [class*="bi-"]::before {
+    font-family: "bootstrap-icons" !important;
+}

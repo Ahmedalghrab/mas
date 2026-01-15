@@ -1,0 +1,61 @@
+@inherits LayoutComponentBase
+@inject mas.Services.LanguageService Lang
+
+<div class="admin-shell" dir="@Lang.Direction">
+    <header class="admin-topbar navbar navbar-dark shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/admin">
+                <i class="bi bi-gem"></i>
+                <span>الماسة - لوحة التحكم</span>
+            </a>
+
+            <div class="d-flex align-items-center gap-2">
+                <a href="/" target="_blank" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-eye me-1"></i> عرض الموقع
+                </a>
+
+                <form action="/Account/Logout" method="post" class="m-0">
+                    <button type="submit" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-box-arrow-right me-1"></i> تسجيل الخروج
+                    </button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <AdminSidebar />
+
+    <main class="admin-main">
+        @Body
+    </main>
+</div>
+
+<style>
+    .admin-shell {
+        min-height: 100vh;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
+    }
+
+    .admin-topbar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        left: 0;
+        height: 64px;
+        z-index: 1100;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .admin-main {
+        margin-top: 64px;
+        margin-right: 280px;
+        padding: 24px;
+    }
+
+    @@media (max-width: 992px) {
+        .admin-main {
+            margin-right: 0;
+            padding: 16px;
+        }
+    }
+</style>
