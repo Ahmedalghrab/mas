@@ -16,7 +16,9 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
 
 // Determine database provider
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Try DATABASE_URL first (Railway), then fall back to ConnectionStrings:DefaultConnection
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
 var usePostgres = connectionString?.Contains("Host=") == true || connectionString?.Contains("postgres") == true;
 
 // Add database context
