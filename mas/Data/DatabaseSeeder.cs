@@ -261,6 +261,77 @@ namespace mas.Data
             await context.FAQs.AddRangeAsync(newFaqs);
             await context.SaveChangesAsync();
 
+            // إضافة صفحات افتراضية إذا لم تكن موجودة
+            if (!await context.Pages.AnyAsync())
+            {
+                var defaultPages = new List<Page>
+                {
+                    new Page
+                    {
+                        TitleAr = "سياسة الخصوصية",
+                        TitleEn = "Privacy Policy",
+                        Slug = "privacy-policy",
+                        ContentAr = @"<h2>سياسة الخصوصية</h2>
+<p>نحن نحترم خصوصيتك ونلتزم بحماية معلوماتك الشخصية.</p>
+<h3>جمع المعلومات</h3>
+<p>نقوم بجمع المعلومات التي تقدمها لنا عند استخدام خدماتنا.</p>
+<h3>استخدام المعلومات</h3>
+<p>نستخدم معلوماتك لتقديم وتحسين خدماتنا.</p>",
+                        ContentEn = @"<h2>Privacy Policy</h2>
+<p>We respect your privacy and are committed to protecting your personal information.</p>",
+                        MetaDescriptionAr = "سياسة الخصوصية لموقع الماسة",
+                        MetaKeywords = "خصوصية, حماية البيانات, سياسة",
+                        IsPublished = true,
+                        ShowInMenu = true,
+                        DisplayOrder = 1
+                    },
+                    new Page
+                    {
+                        TitleAr = "الشروط والأحكام",
+                        TitleEn = "Terms and Conditions",
+                        Slug = "terms-conditions",
+                        ContentAr = @"<h2>الشروط والأحكام</h2>
+<p>مرحباً بك في موقع الماسة للخدمات الطلابية.</p>
+<h3>استخدام الموقع</h3>
+<p>باستخدامك لهذا الموقع، فإنك توافق على هذه الشروط والأحكام.</p>",
+                        ContentEn = @"<h2>Terms and Conditions</h2>
+<p>Welcome to AlMasa Student Services.</p>",
+                        MetaDescriptionAr = "الشروط والأحكام الخاصة بموقع الماسة",
+                        MetaKeywords = "شروط, أحكام, اتفاقية",
+                        IsPublished = true,
+                        ShowInMenu = true,
+                        DisplayOrder = 2
+                    },
+                    new Page
+                    {
+                        TitleAr = "من نحن",
+                        TitleEn = "About Us",
+                        Slug = "about",
+                        ContentAr = @"<h2>من نحن</h2>
+<p>الماسة هي منصة رائدة في تقديم الخدمات الطلابية والأكاديمية.</p>
+<h3>رؤيتنا</h3>
+<p>نسعى لتكون المنصة الأولى لخدمات الطلاب في المنطقة.</p>
+<h3>قيمنا</h3>
+<ul>
+<li>الجودة والاحترافية</li>
+<li>الالتزام بالمواعيد</li>
+<li>خدمة عملاء ممتازة</li>
+</ul>",
+                        ContentEn = @"<h2>About Us</h2>
+<p>AlMasa is a leading platform for student and academic services.</p>",
+                        MetaDescriptionAr = "تعرف على الماسة ورؤيتنا وقيمنا",
+                        MetaKeywords = "من نحن, عن الماسة, رؤيتنا",
+                        IconClass = "bi-info-circle",
+                        IsPublished = true,
+                        ShowInMenu = true,
+                        DisplayOrder = 3
+                    }
+                };
+
+                await context.Pages.AddRangeAsync(defaultPages);
+                await context.SaveChangesAsync();
+            }
+
             // رسالة نجاح
             Console.WriteLine("✅ تم تحديث البيانات بالعربية بنجاح!");
         }
