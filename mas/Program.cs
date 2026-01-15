@@ -16,29 +16,29 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
 
 // Determine database provider
-// Railway provides DATABASE_URL environment variable
+// Railway provides DATABASE_URL environment variable - read it directly
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+// Fallback to Configuration if env variable not found
 if (string.IsNullOrEmpty(connectionString))
 {
     connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 }
 
-// Log the connection string status for debugging
-Console.WriteLine($"Connection String Found: {!string.IsNullOrEmpty(connectionString)}");
-if (!string.IsNullOrEmpty(connectionString))
+// Critical: Exit if no connection string found to prevent infinite error loops
+if (string.IsNullOrEmpty(connectionString))
 {
-    Console.WriteLine($"Connection String length: {connectionString.Length}");
-    Console.WriteLine($"Connection String starts with: {connectionString?.Substring(0, Math.Min(30, connectionString.Length))}...");
-}
-else
-{
-    Console.WriteLine("ERROR: No connection string found!");
-    Console.WriteLine($"DATABASE_URL env: {Environment.GetEnvironmentVariable("DATABASE_URL") ?? "NULL"}");
-    Console.WriteLine($"Config connection: {builder.Configuration.GetConnectionString("DefaultConnection") ?? "NULL"}");
+    Console.WriteLine("FATAL ERROR: No database connection string found!");
+    Console.WriteLine($"DATABASE_URL: {Environment.GetEnvironmentVariable("DATABASE_URL") ?? "NULL"}");
+    Console.WriteLine($"Config DefaultConnection: {builder.Configuration.GetConnectionString("DefaultConnection") ?? "NULL"}");
+    Environment.Exit(1);
 }
 
-var usePostgres = connectionString?.Contains("Host=") == true || connectionString?.Contains("postgres") == true;
-Console.WriteLine($"Using PostgreSQL: {usePostgres}");
+Console.WriteLine($"✓ Connection String Found (length: {connectionString.Length})");
+Console.WriteLine($"✓ Connection type: {(connectionString.Contains("postgres") ? "PostgreSQL" : "SQLite")}");
+
+var usePostgres = connectionString.Contains("Host=") || connectionString.Contains("postgres");
+Console.WriteLine($"✓ Using PostgreSQL: {usePostgres}");
 
 // Add database context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
