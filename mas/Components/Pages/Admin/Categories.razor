@@ -1,5 +1,6 @@
 @page "/admin/categories"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using mas.Models
 @using System.Net.Http.Json
 @rendermode InteractiveServer
@@ -143,6 +144,19 @@
                                 <small class="text-muted">استخدم أيقونات Bootstrap Icons</small>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label fw-bold">صورة التصنيف</label>
+                                <InputFile OnChange="HandleImageSelected" class="form-control form-control-lg" accept="image/*" />
+                                <small class="text-muted">اختر صورة للتصنيف (اختياري)</small>
+                                @if (!string.IsNullOrEmpty(selectedImagePreview))
+                                {
+                                    <img src="@selectedImagePreview" alt="Preview" class="img-thumbnail mt-2" style="max-height: 150px;" />
+                                }
+                                else if (!string.IsNullOrEmpty(editingCategory.ImageUrl))
+                                {
+                                    <img src="@editingCategory.ImageUrl" alt="Current" class="img-thumbnail mt-2" style="max-height: 150px;" />
+                                }
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label fw-bold">الحالة</label>
                                 <div class="form-check form-switch mt-2">
                                     <input class="form-check-input" type="checkbox" role="switch" @bind="editingCategory.IsActive" />
@@ -177,10 +191,25 @@
     private bool showMessage = false;
     private string message = "";
     private string messageClass = "";
+    private IBrowserFile? selectedImage;
+    private string? selectedImagePreview;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadCategories();
+    }
+
+    private async Task HandleImageSelected(InputFileChangeEventArgs e)
+    {
+        selectedImage = e.File;
+        
+        // Create preview
+        if (selectedImage != null)
+        {
+            var buffer = new byte[selectedImage.Size];
+            await selectedImage.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).ReadAsync(buffer);
+            selectedImagePreview = $"data:{selectedImage.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        }
     }
 
     private async Task LoadCategories()
@@ -221,8 +250,11 @@
             DescriptionAr = category.DescriptionAr,
             DescriptionEn = category.DescriptionEn,
             IconClass = category.IconClass,
+            ImageUrl = category.ImageUrl,
             IsActive = category.IsActive
         };
+        selectedImage = null;
+        selectedImagePreview = null;
         showModal = true;
     }
 
@@ -231,6 +263,26 @@
         saving = true;
         try
         {
+            // Upload image first if selected
+            if (selectedImage != null)
+            {
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(selectedImage.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(selectedImage.ContentType);
+                content.Add(fileContent, "file", selectedImage.Name);
+                content.Add(new StringContent("categories"), "folder");
+
+                var imageResponse = await Http.PostAsync("api/Image/upload", content);
+                if (imageResponse.IsSuccessStatusCode)
+                {
+                    var imageResult = await imageResponse.Content.ReadFromJsonAsync<ImageUploadResponse>();
+                    if (imageResult != null)
+                    {
+                        editingCategory.ImageUrl = imageResult.ImagePath;
+                    }
+                }
+            }
+
             HttpResponseMessage response;
             if (editingCategory.Id == 0)
             {
@@ -249,7 +301,8 @@
             }
             else
             {
-                ShowMessage("فشل حفظ التصنيف", "alert-danger");
+                var errorContent = await response.Content.ReadAsStringAsync();
+                ShowMessage($"فشل حفظ التصنيف: {errorContent}", "alert-danger");
             }
         }
         catch (Exception ex)
@@ -260,6 +313,13 @@
         {
             saving = false;
         }
+    }
+
+    private class ImageUploadResponse
+    {
+        public string ImagePath { get; set; } = "";
+        public string ThumbnailPath { get; set; } = "";
+        public string FileName { get; set; } = "";
     }
 
     private async Task DeleteCategory(int id)
@@ -290,6 +350,8 @@
     {
         showModal = false;
         editingCategory = new Category { NameAr = "", NameEn = "" };
+        selectedImage = null;
+        selectedImagePreview = null;
     }
 
     private void ShowMessage(string msg, string cssClass)
