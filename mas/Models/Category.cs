@@ -8,6 +8,7 @@ public class Category
     public string? DescriptionAr { get; set; }
     public string? DescriptionEn { get; set; }
     public string? IconClass { get; set; } // CSS icon class
+    public string? ImageUrl { get; set; } // Category image URL (Cloudinary)
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     

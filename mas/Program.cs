@@ -90,7 +90,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 // Register image upload service
-builder.Services.AddScoped<Services.IImageUploadService, Services.CloudinaryImageService>();
+builder.Services.AddScoped<mas.Services.IImageUploadService, mas.Services.CloudinaryImageService>();
 
 // Add HttpClient for server-side Blazor components
 builder.Services.AddHttpClient();
