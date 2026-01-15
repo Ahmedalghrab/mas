@@ -16,15 +16,17 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
 
 // Determine database provider
-// Try DATABASE_URL first (Railway), then fall back to ConnectionStrings:DefaultConnection
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 // Log the connection string status for debugging
 Console.WriteLine($"Connection String Found: {!string.IsNullOrEmpty(connectionString)}");
 if (!string.IsNullOrEmpty(connectionString))
 {
     Console.WriteLine($"Connection String starts with: {connectionString?.Substring(0, Math.Min(20, connectionString.Length))}...");
+}
+else
+{
+    Console.WriteLine("ERROR: No connection string found!");
 }
 
 var usePostgres = connectionString?.Contains("Host=") == true || connectionString?.Contains("postgres") == true;
