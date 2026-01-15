@@ -38,26 +38,6 @@ public class ImageController : ControllerBase
             // Upload to Cloudinary
             var imageUrl = await _imageUploadService.UploadImageAsync(file, folder);
 
-    using (var image = await Image.LoadAsync(file.OpenReadStream()))
-       {
-        // Save original or enhanced version
-                if (enhance)
-                {
-     // Apply AI-like enhancements
-           image.Mutate(x => x
-  .AutoOrient() // Fix orientation
-      .Resize(new ResizeOptions
- {
-          Size = new Size(1200, 1200),
-            Mode = ResizeMode.Max
-       })
-       .GaussianSharpen(1.5f) // Sharpen
-         .Saturate(1.2f) // Increase saturation
-    .Contrast(1.1f) // Increase contrast slightly
-   .Brightness(1.05f) // Slightly brighten
-          );
-     }
-
             return Ok(new ImageUploadResponse
             {
                 ImagePath = imageUrl,
