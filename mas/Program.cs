@@ -194,7 +194,10 @@ using (var scope = app.Services.CreateScope())
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
       var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         
+        // Apply migrations
+        Console.WriteLine("Applying database migrations...");
         context.Database.Migrate();
+        Console.WriteLine("✓ Migrations applied successfully");
         
      // Create Admin role if it doesn't exist
         if (!await roleManager.RoleExistsAsync("Admin"))
