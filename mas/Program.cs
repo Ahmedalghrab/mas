@@ -323,15 +323,33 @@ static string FormatExceptionChain(Exception ex)
 
 static async Task<bool> TryApplyMigrationsAsync(ApplicationDbContext context)
 {
-    Console.WriteLine("Applying database migrations...");
+    var provider = context.Database.ProviderName ?? "";
+    var isNpgsqlProvider = provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
+
+    if (isNpgsqlProvider)
+    {
+        Console.WriteLine("Ensuring database schema exists (PostgreSQL)...");
+    }
+    else
+    {
+        Console.WriteLine("Applying database migrations...");
+    }
 
     const int maxDbAttempts = 6;
     for (var attempt = 1; attempt <= maxDbAttempts; attempt++)
     {
         try
         {
-            await context.Database.MigrateAsync();
-            Console.WriteLine("✓ Migrations applied successfully");
+            if (isNpgsqlProvider)
+            {
+                await context.Database.EnsureCreatedAsync();
+                Console.WriteLine("✓ Database schema ensured successfully (PostgreSQL)");
+            }
+            else
+            {
+                await context.Database.MigrateAsync();
+                Console.WriteLine("✓ Migrations applied successfully");
+            }
             return true;
         }
         catch (Exception ex) when (attempt < maxDbAttempts)
