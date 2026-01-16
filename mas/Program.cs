@@ -5,6 +5,8 @@ using mas.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -89,12 +91,45 @@ if (usePostgres && (connectionString.StartsWith("postgresql://") || connectionSt
         var database = uri.AbsolutePath.TrimStart('/');
 
         // Railway TCP proxy typically requires SSL; use higher timeouts to tolerate transient network delays
-        connectionString = $"Host={host};Port={pgPort};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Timeout=120;Command Timeout=120;Keepalive=30";
+        var csb = new NpgsqlConnectionStringBuilder
+        {
+            Host = host,
+            Port = pgPort,
+            Database = database,
+            Username = username,
+            Password = password,
+            SslMode = SslMode.Require,
+            Timeout = 120,
+            CommandTimeout = 120,
+            KeepAlive = 30,
+            Pooling = true,
+            MaxPoolSize = 20,
+            MinPoolSize = 0
+        };
+
+        connectionString = csb.ConnectionString;
         Console.WriteLine($"✓ Converted URI to keyword format: Host={host};Port={pgPort};SSL=Require");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"⚠ Failed to convert URI format: {ex.Message}");
+    }
+}
+
+// Quick connectivity probe (best-effort) so we can distinguish DNS/TCP issues from SSL/handshake issues
+if (usePostgres)
+{
+    try
+    {
+        var csbProbe = new NpgsqlConnectionStringBuilder(connectionString);
+        if (!string.IsNullOrWhiteSpace(csbProbe.Host))
+        {
+            await LogTcpConnectivityAsync(csbProbe.Host, csbProbe.Port);
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠ Connectivity probe skipped: {ex.GetType().Name}: {ex.Message}");
     }
 }
 
@@ -216,70 +251,152 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(mas.Client._Imports).Assembly);
 
-// Initialize database and create admin user
-using (var scope = app.Services.CreateScope())
+static async Task LogTcpConnectivityAsync(string host, int port)
 {
-  var services = scope.ServiceProvider;
+    try
+    {
+        using var client = new TcpClient();
+        var connectTask = client.ConnectAsync(host, port);
+        var completed = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(5)));
+        if (completed != connectTask)
+        {
+            Console.WriteLine($"✗ TCP connect timeout to {host}:{port}");
+            return;
+        }
+        await connectTask;
+        Console.WriteLine($"✓ TCP connect OK to {host}:{port}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"✗ TCP connect failed to {host}:{port}: {ex.GetType().Name}: {ex.Message}");
+    }
+}
+
+static string FormatExceptionChain(Exception ex)
+{
+    var parts = new List<string>();
+    Exception? current = ex;
+    var depth = 0;
+    while (current != null && depth < 6)
+    {
+        parts.Add($"{current.GetType().Name}: {current.Message}");
+        current = current.InnerException;
+        depth++;
+    }
+    return string.Join(" | ", parts);
+}
+
+static async Task<bool> TryApplyMigrationsAsync(ApplicationDbContext context)
+{
+    Console.WriteLine("Applying database migrations...");
+
+    const int maxDbAttempts = 6;
+    for (var attempt = 1; attempt <= maxDbAttempts; attempt++)
+    {
+        try
+        {
+            await context.Database.MigrateAsync();
+            Console.WriteLine("✓ Migrations applied successfully");
+            return true;
+        }
+        catch (Exception ex) when (attempt < maxDbAttempts)
+        {
+            Console.WriteLine($"Database attempt {attempt}/{maxDbAttempts} failed: {FormatExceptionChain(ex)}");
+            await Task.Delay(TimeSpan.FromSeconds(10 * attempt));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database attempt {attempt}/{maxDbAttempts} failed (final): {FormatExceptionChain(ex)}");
+            return false;
+        }
+    }
+
+    return false;
+}
+
+static async Task InitializeDatabaseAsync(IServiceProvider rootServices)
+{
+    using var scope = rootServices.CreateScope();
+    var services = scope.ServiceProvider;
+
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-      var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        
-        // Apply migrations with retries (Railway proxy can be transient)
-        Console.WriteLine("Applying database migrations...");
-        const int maxDbAttempts = 6;
-        for (var attempt = 1; attempt <= maxDbAttempts; attempt++)
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        var logger = services.GetRequiredService<ILogger<Program>>();
+
+        // Optional: quick connectivity checks (do not log credentials)
+        try
         {
-            try
+            var db = context.Database.GetDbConnection();
+            if (!string.IsNullOrWhiteSpace(db.DataSource))
             {
-                await context.Database.MigrateAsync();
-                Console.WriteLine("✓ Migrations applied successfully");
-                break;
-            }
-            catch (Exception ex) when (attempt < maxDbAttempts)
-            {
-                Console.WriteLine($"Database attempt {attempt}/{maxDbAttempts} failed: {ex.GetType().Name}. Retrying...");
-                await Task.Delay(TimeSpan.FromSeconds(10 * attempt));
+                // For Npgsql, DataSource contains host (and sometimes port); keep best-effort.
+                Console.WriteLine($"DB DataSource: {db.DataSource}");
             }
         }
-        
-     // Create Admin role if it doesn't exist
+        catch
+        {
+            // ignore connectivity probe failures
+        }
+
+        // Apply migrations; if DB isn't reachable, skip seeding to avoid long startup failures
+        var migrated = await TryApplyMigrationsAsync(context);
+        if (!migrated)
+        {
+            logger.LogError("Database is not reachable; skipping role/user creation and seeding for now.");
+            return;
+        }
+
+        // Create Admin role if it doesn't exist
         if (!await roleManager.RoleExistsAsync("Admin"))
         {
- await roleManager.CreateAsync(new IdentityRole("Admin"));
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
         }
-        
+
         // Create default admin user
         var adminEmail = "admin@mas.com";
-var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
         if (adminUser == null)
- {
+        {
             adminUser = new ApplicationUser
             {
-           UserName = adminEmail,
-       Email = adminEmail,
-FullName = "Administrator",
+                UserName = adminEmail,
+                Email = adminEmail,
+                FullName = "Administrator",
                 EmailConfirmed = true
-         };
-var result = await userManager.CreateAsync(adminUser, "Admin@123");
-       if (result.Succeeded)
-         {
-          await userManager.AddToRoleAsync(adminUser, "Admin");
-}
+            };
+            var result = await userManager.CreateAsync(adminUser, "Admin@123");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
         }
-     
-// Seed Arabic data (fix ??? issue)
+
+        // Seed Arabic data (fix ??? issue)
         await DatabaseSeeder.SeedArabicDataAsync(context);
-    
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("? Database seeded successfully with Arabic data");
+
+        logger.LogInformation("Database seeded successfully with Arabic data");
     }
- catch (Exception ex)
+    catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-   logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
     }
+}
+
+// On Railway: don't block container startup on DB readiness (prevents stuck DEPLOYING)
+if (Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") != null)
+{
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        _ = Task.Run(() => InitializeDatabaseAsync(app.Services));
+    });
+}
+else
+{
+    await InitializeDatabaseAsync(app.Services);
 }
 
 app.Run();
