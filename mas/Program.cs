@@ -88,8 +88,8 @@ if (usePostgres && (connectionString.StartsWith("postgresql://") || connectionSt
         var pgPort = uri.Port;
         var database = uri.AbsolutePath.TrimStart('/');
 
-        // Railway TCP proxy requires SSL
-        connectionString = $"Host={host};Port={pgPort};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Timeout=30;Command Timeout=30;Keepalive=30";
+        // Railway TCP proxy typically requires SSL; use higher timeouts to tolerate transient network delays
+        connectionString = $"Host={host};Port={pgPort};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Timeout=120;Command Timeout=120;Keepalive=30";
         Console.WriteLine($"✓ Converted URI to keyword format: Host={host};Port={pgPort};SSL=Require");
     }
     catch (Exception ex)
@@ -105,7 +105,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (usePostgres)
     {
-        options.UseNpgsql(connectionString);
+        options.UseNpgsql(connectionString, npgsql =>
+        {
+            npgsql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        });
     }
     else
     {
@@ -120,7 +123,10 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
 {
     if (usePostgres)
     {
-        options.UseNpgsql(connectionString);
+        options.UseNpgsql(connectionString, npgsql =>
+        {
+            npgsql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        });
     }
     else
     {
@@ -220,10 +226,23 @@ using (var scope = app.Services.CreateScope())
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
       var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         
-        // Apply migrations - use EnsureCreated for production to avoid connection string parsing issues
-        Console.WriteLine("Ensuring database is created...");
-        await context.Database.EnsureCreatedAsync();
-        Console.WriteLine("✓ Database ready");
+        // Apply migrations with retries (Railway proxy can be transient)
+        Console.WriteLine("Applying database migrations...");
+        const int maxDbAttempts = 6;
+        for (var attempt = 1; attempt <= maxDbAttempts; attempt++)
+        {
+            try
+            {
+                await context.Database.MigrateAsync();
+                Console.WriteLine("✓ Migrations applied successfully");
+                break;
+            }
+            catch (Exception ex) when (attempt < maxDbAttempts)
+            {
+                Console.WriteLine($"Database attempt {attempt}/{maxDbAttempts} failed: {ex.GetType().Name}. Retrying...");
+                await Task.Delay(TimeSpan.FromSeconds(10 * attempt));
+            }
+        }
         
      // Create Admin role if it doesn't exist
         if (!await roleManager.RoleExistsAsync("Admin"))
