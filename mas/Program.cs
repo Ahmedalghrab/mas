@@ -31,6 +31,41 @@ if (Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") != null)
 // Railway provides DATABASE_URL environment variable - read it directly
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
 
+// If Postgres service variables are present, prefer them (internal network) over any public/proxy URL.
+var pgHostEnv = Environment.GetEnvironmentVariable("PGHOST");
+if (!string.IsNullOrWhiteSpace(pgHostEnv))
+{
+    var pgDatabaseEnv = Environment.GetEnvironmentVariable("PGDATABASE") ?? "railway";
+    var pgUserEnv = Environment.GetEnvironmentVariable("PGUSER") ?? "postgres";
+    var pgPasswordEnv = Environment.GetEnvironmentVariable("PGPASSWORD") ?? "";
+    var pgPortEnvRaw = Environment.GetEnvironmentVariable("PGPORT") ?? "5432";
+    _ = int.TryParse(pgPortEnvRaw, out var pgPortEnv);
+    if (pgPortEnv <= 0)
+    {
+        pgPortEnv = 5432;
+    }
+
+    // Internal Railway Postgres is typically plain TCP; avoid SSL negotiation against internal endpoints.
+    var csbInternal = new NpgsqlConnectionStringBuilder
+    {
+        Host = pgHostEnv,
+        Port = pgPortEnv,
+        Database = pgDatabaseEnv,
+        Username = pgUserEnv,
+        Password = pgPasswordEnv,
+        SslMode = SslMode.Disable,
+        Timeout = 120,
+        CommandTimeout = 120,
+        KeepAlive = 30,
+        Pooling = true,
+        MaxPoolSize = 20,
+        MinPoolSize = 0
+    };
+
+    connectionString = csbInternal.ConnectionString;
+    Console.WriteLine("✓ Using PG* environment variables for PostgreSQL (internal Railway network)");
+}
+
 // Debug logging
 Console.WriteLine("=== DATABASE CONNECTION DEBUG ===");
 Console.WriteLine($"RAILWAY_ENVIRONMENT: {Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") ?? "NULL"}");
