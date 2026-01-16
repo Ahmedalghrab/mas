@@ -72,6 +72,23 @@ Console.WriteLine($"✓ Connection starts with: {connectionString.Substring(0, M
 
 var usePostgres = connectionString.Contains("Host=") || connectionString.Contains("postgres");
 Console.WriteLine($"✓ Using PostgreSQL: {usePostgres}");
+
+// Convert PostgreSQL URI format to keyword format if needed
+if (usePostgres && connectionString.StartsWith("postgresql://"))
+{
+    try
+    {
+        var uri = new Uri(connectionString);
+        var userInfo = uri.UserInfo.Split(':');
+        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]}";
+        Console.WriteLine($"✓ Converted URI to keyword format: Host={uri.Host};Port={uri.Port}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠ Failed to convert URI format: {ex.Message}");
+    }
+}
+
 Console.WriteLine("=== END DEBUG ===");
 
 // Add database context
