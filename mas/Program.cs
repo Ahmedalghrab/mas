@@ -421,13 +421,15 @@ static async Task InitializeDatabaseAsync(IServiceProvider rootServices)
     }
 }
 
-// On Railway: don't block container startup on DB readiness (prevents stuck DEPLOYING)
+// On Railway: initialize DB before serving requests (so tables exist), but cap the wait.
 if (Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") != null)
 {
-    app.Lifetime.ApplicationStarted.Register(() =>
+    var initTask = InitializeDatabaseAsync(app.Services);
+    var completed = await Task.WhenAny(initTask, Task.Delay(TimeSpan.FromSeconds(60)));
+    if (completed != initTask)
     {
-        _ = Task.Run(() => InitializeDatabaseAsync(app.Services));
-    });
+        Console.WriteLine("⚠ Database initialization is taking too long; continuing startup (will retry on next deploy/restart).");
+    }
 }
 else
 {
