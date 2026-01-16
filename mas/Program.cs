@@ -337,6 +337,10 @@ static async Task<bool> TryApplyMigrationsAsync(ApplicationDbContext context)
         catch (Exception ex) when (attempt < maxDbAttempts)
         {
             Console.WriteLine($"Database attempt {attempt}/{maxDbAttempts} failed: {FormatExceptionChain(ex)}");
+            if (attempt == 1)
+            {
+                Console.WriteLine(ex.ToString());
+            }
             await Task.Delay(TimeSpan.FromSeconds(10 * attempt));
         }
         catch (Exception ex)
