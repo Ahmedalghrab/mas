@@ -1,0 +1,62 @@
+# This file specifies files that are *not* uploaded to Google Cloud
+# using gcloud. It follows the same syntax as .gitignore.
+
+# .NET build outputs
+bin/
+obj/
+*/bin/
+*/obj/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+mas.db*
+
+# Logs
+Logs/
+logs/
+*.log
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+*.swp
+*.bak
+*~
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Development files
+appsettings.Development.json
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Railway files (if deploying to GCP)
+railway.json
+railway_logs.txt
+
+# Node modules (if any)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Test files
+**/test/
+**/tests/
+
+# Temporary files
+tmp/
+temp/

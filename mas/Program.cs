@@ -15,6 +15,10 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure dynamic port for Railway (Railway provides PORT environment variable)
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // Force Production environment on Railway
 if (Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") != null)
 {
@@ -39,16 +43,32 @@ if (string.IsNullOrEmpty(connectionString))
 }
 
 // Critical: Exit if no connection string found to prevent infinite error loops
-if (string.IsNullOrEmpty(connectionString))
+if (string.IsNullOrEmpty(connectionString) || connectionString.Length < 10)
 {
+    Console.WriteLine("==========================================");
     Console.WriteLine("FATAL ERROR: No database connection string found!");
+    Console.WriteLine("==========================================");
     Console.WriteLine($"DATABASE_URL: {Environment.GetEnvironmentVariable("DATABASE_URL") ?? "NULL"}");
     Console.WriteLine($"Config DefaultConnection: {builder.Configuration.GetConnectionString("DefaultConnection") ?? "NULL"}");
+    Console.WriteLine();
+    Console.WriteLine("Available Environment Variables:");
+    foreach (System.Collections.DictionaryEntry env in Environment.GetEnvironmentVariables())
+    {
+        var key = env.Key?.ToString() ?? "";
+        if (key.Contains("DATABASE", StringComparison.OrdinalIgnoreCase) || 
+            key.Contains("CONNECTION", StringComparison.OrdinalIgnoreCase) ||
+            key.Contains("POSTGRES", StringComparison.OrdinalIgnoreCase) ||
+            key.Contains("SQL", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine($"  {key}: {env.Value}");
+        }
+    }
+    Console.WriteLine("==========================================");
     Environment.Exit(1);
 }
 
 Console.WriteLine($"✓ Connection String Found (length: {connectionString.Length})");
-Console.WriteLine($"✓ Connection starts with: {connectionString?.Substring(0, Math.Min(15, connectionString.Length))}...");
+Console.WriteLine($"✓ Connection starts with: {connectionString.Substring(0, Math.Min(15, connectionString.Length))}...");
 
 var usePostgres = connectionString.Contains("Host=") || connectionString.Contains("postgres");
 Console.WriteLine($"✓ Using PostgreSQL: {usePostgres}");

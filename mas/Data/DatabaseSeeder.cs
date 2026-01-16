@@ -9,9 +9,12 @@ namespace mas.Data
     {
         public static async Task SeedArabicDataAsync(ApplicationDbContext context)
         {
-            // Set connection to use UTF-8
-            await context.Database.ExecuteSqlRawAsync("PRAGMA encoding = 'UTF-8';");
-            await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = WAL;");
+            // Set connection to use UTF-8 (SQLite only)
+            if (context.Database.IsSqlite())
+            {
+                await context.Database.ExecuteSqlRawAsync("PRAGMA encoding = 'UTF-8';");
+                await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = WAL;");
+            }
             
             // حذف البيانات القديمة
             var oldProducts = await context.Products.ToListAsync();
