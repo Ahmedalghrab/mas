@@ -80,8 +80,13 @@ if (usePostgres && connectionString.StartsWith("postgresql://"))
     {
         var uri = new Uri(connectionString);
         var userInfo = uri.UserInfo.Split(':');
-        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]}";
-        Console.WriteLine($"✓ Converted URI to keyword format: Host={uri.Host};Port={uri.Port}");
+        
+        // Use public Railway Postgres URL instead of internal domain for better connectivity
+        var host = Environment.GetEnvironmentVariable("RAILWAY_SERVICE_POSTGRES_URL") ?? uri.Host;
+        var port = uri.Port;
+        
+        connectionString = $"Host={host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};Timeout=30;Command Timeout=30";
+        Console.WriteLine($"✓ Converted URI to keyword format: Host={host};Port={port}");
     }
     catch (Exception ex)
     {
