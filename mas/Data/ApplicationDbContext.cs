@@ -9,6 +9,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
    : base(options)
     {
+        // Debug: Print connection string
+        var connString = Database.GetConnectionString();
+        Console.WriteLine($"[DbContext] Connection String Length: {connString?.Length ?? 0}");
+        Console.WriteLine($"[DbContext] Connection String: {connString?.Substring(0, Math.Min(50, connString?.Length ?? 0))}...");
     }
 
     public DbSet<Product> Products { get; set; }
