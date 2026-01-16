@@ -85,12 +85,12 @@ if (usePostgres && (connectionString.StartsWith("postgresql://") || connectionSt
         var password = userInfo.Length > 1 ? userInfo[1] : "";
 
         var host = uri.Host;
-        var port = uri.Port;
+        var pgPort = uri.Port;
         var database = uri.AbsolutePath.TrimStart('/');
 
         // Railway TCP proxy requires SSL
-        connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Timeout=30;Command Timeout=30;Keepalive=30";
-        Console.WriteLine($"✓ Converted URI to keyword format: Host={host};Port={port};SSL=Require");
+        connectionString = $"Host={host};Port={pgPort};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Timeout=30;Command Timeout=30;Keepalive=30";
+        Console.WriteLine($"✓ Converted URI to keyword format: Host={host};Port={pgPort};SSL=Require");
     }
     catch (Exception ex)
     {
