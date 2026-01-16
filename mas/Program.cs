@@ -53,7 +53,7 @@ if (!string.IsNullOrWhiteSpace(pgHostEnv))
         Database = pgDatabaseEnv,
         Username = pgUserEnv,
         Password = pgPasswordEnv,
-        SslMode = SslMode.Disable,
+        SslMode = SslMode.Require,
         Timeout = 120,
         CommandTimeout = 120,
         KeepAlive = 30,
