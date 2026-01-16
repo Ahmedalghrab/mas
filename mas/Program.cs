@@ -48,7 +48,8 @@ if (string.IsNullOrEmpty(connectionString) || connectionString.Length < 10)
     Console.WriteLine("==========================================");
     Console.WriteLine("FATAL ERROR: No database connection string found!");
     Console.WriteLine("==========================================");
-    Console.WriteLine($"DATABASE_URL: {Environment.GetEnvironmentVariable("DATABASE_URL") ?? "NULL"}");
+    var dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    Console.WriteLine($"DATABASE_URL length: {(dbUrl?.Length ?? 0)}");
     Console.WriteLine($"Config DefaultConnection: {builder.Configuration.GetConnectionString("DefaultConnection") ?? "NULL"}");
     Console.WriteLine();
     Console.WriteLine("Available Environment Variables:");
@@ -60,7 +61,7 @@ if (string.IsNullOrEmpty(connectionString) || connectionString.Length < 10)
             key.Contains("POSTGRES", StringComparison.OrdinalIgnoreCase) ||
             key.Contains("SQL", StringComparison.OrdinalIgnoreCase))
         {
-            Console.WriteLine($"  {key}: {env.Value}");
+            Console.WriteLine($"  {key}: [set]");
         }
     }
     Console.WriteLine("==========================================");
@@ -74,19 +75,22 @@ var usePostgres = connectionString.Contains("Host=") || connectionString.Contain
 Console.WriteLine($"✓ Using PostgreSQL: {usePostgres}");
 
 // Convert PostgreSQL URI format to keyword format if needed
-if (usePostgres && connectionString.StartsWith("postgresql://"))
+if (usePostgres && (connectionString.StartsWith("postgresql://") || connectionString.StartsWith("postgres://")))
 {
     try
     {
         var uri = new Uri(connectionString);
-        var userInfo = uri.UserInfo.Split(':');
-        
-        // Use public Railway Postgres URL instead of internal domain for better connectivity
-        var host = Environment.GetEnvironmentVariable("RAILWAY_SERVICE_POSTGRES_URL") ?? uri.Host;
+        var userInfo = uri.UserInfo.Split(':', 2);
+        var username = userInfo.Length > 0 ? userInfo[0] : "";
+        var password = userInfo.Length > 1 ? userInfo[1] : "";
+
+        var host = uri.Host;
         var port = uri.Port;
-        
-        connectionString = $"Host={host};Port={port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};Timeout=30;Command Timeout=30";
-        Console.WriteLine($"✓ Converted URI to keyword format: Host={host};Port={port}");
+        var database = uri.AbsolutePath.TrimStart('/');
+
+        // Railway TCP proxy requires SSL
+        connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Timeout=30;Command Timeout=30;Keepalive=30";
+        Console.WriteLine($"✓ Converted URI to keyword format: Host={host};Port={port};SSL=Require");
     }
     catch (Exception ex)
     {

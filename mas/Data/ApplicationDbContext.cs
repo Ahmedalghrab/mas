@@ -9,15 +9,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
    : base(options)
     {
-        // Debug: Print connection string
-        var connString = Database.GetConnectionString();
-        Console.WriteLine($"[DbContext] Connection String Length: {connString?.Length ?? 0}");
-        Console.WriteLine($"[DbContext] FULL Connection String: '{connString}'");
-        if (connString != null)
-        {
-            Console.WriteLine($"[DbContext] First char code: {(int)connString[0]}");
-            Console.WriteLine($"[DbContext] Last char code: {(int)connString[connString.Length - 1]}");
-        }
     }
 
     public DbSet<Product> Products { get; set; }
