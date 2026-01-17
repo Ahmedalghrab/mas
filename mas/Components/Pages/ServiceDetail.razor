@@ -1,4 +1,6 @@
 @page "/services/{id:int}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @rendermode InteractiveServer
 
 <PageTitle>@(product?.NameAr ?? "تفاصيل الخدمة") - الماسة للخدمات</PageTitle>

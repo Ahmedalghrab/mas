@@ -23,9 +23,9 @@
 https://cloudinary.com/users/register_free
 ```
 احصل على:
-- Cloud Name
-- API Key
-- API Secret
+- Cloud Name dbm7bwovt
+- API Key 814596175848219
+- API Secret SwkGKpQX5TgP7GQoDkHBK768u70
 
 ### 2️⃣ إنشاء مشروع Railway (5 دقائق)
 

@@ -321,7 +321,34 @@ static string FormatExceptionChain(Exception ex)
     return string.Join(" | ", parts);
 }
 
-static async Task<bool> TryApplyMigrationsAsync(ApplicationDbContext context)
+static async Task<bool> TableExistsAsync(ApplicationDbContext context, string tableName)
+{
+    try
+    {
+        var connection = context.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+        }
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = @t);";
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "t";
+        parameter.Value = tableName;
+        command.Parameters.Add(parameter);
+
+        var result = await command.ExecuteScalarAsync();
+        return result is bool exists && exists;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+static async Task<bool> TryEnsureSchemaAsync(ApplicationDbContext context)
 {
     var provider = context.Database.ProviderName ?? "";
     var isNpgsqlProvider = provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
@@ -342,7 +369,33 @@ static async Task<bool> TryApplyMigrationsAsync(ApplicationDbContext context)
         {
             if (isNpgsqlProvider)
             {
+                // EnsureCreated() will NO-OP if *any* table exists, even if the schema is incomplete.
+                // If earlier/failed attempts created partial tables, we must detect and repair.
                 await context.Database.EnsureCreatedAsync();
+
+                var hasSiteSettings = await TableExistsAsync(context, "SiteSettings");
+                if (!hasSiteSettings)
+                {
+                    Console.WriteLine("⚠ PostgreSQL schema appears incomplete (missing SiteSettings). Attempting to recreate public schema...");
+
+                    try
+                    {
+                        await context.Database.ExecuteSqlRawAsync("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
+                    }
+                    catch (Exception dropEx)
+                    {
+                        Console.WriteLine($"Public schema drop failed: {FormatExceptionChain(dropEx)}");
+                        throw;
+                    }
+
+                    await context.Database.EnsureCreatedAsync();
+                    hasSiteSettings = await TableExistsAsync(context, "SiteSettings");
+                    if (!hasSiteSettings)
+                    {
+                        throw new InvalidOperationException("Schema initialization completed but SiteSettings table is still missing.");
+                    }
+                }
+
                 Console.WriteLine("✓ Database schema ensured successfully (PostgreSQL)");
             }
             else
@@ -371,7 +424,7 @@ static async Task<bool> TryApplyMigrationsAsync(ApplicationDbContext context)
     return false;
 }
 
-static async Task InitializeDatabaseAsync(IServiceProvider rootServices)
+static async Task<bool> InitializeDatabaseAsync(IServiceProvider rootServices)
 {
     using var scope = rootServices.CreateScope();
     var services = scope.ServiceProvider;
@@ -399,17 +452,24 @@ static async Task InitializeDatabaseAsync(IServiceProvider rootServices)
         }
 
         // Apply migrations; if DB isn't reachable, skip seeding to avoid long startup failures
-        var migrated = await TryApplyMigrationsAsync(context);
-        if (!migrated)
+        var schemaOk = await TryEnsureSchemaAsync(context);
+        if (!schemaOk)
         {
             logger.LogError("Database is not reachable; skipping role/user creation and seeding for now.");
-            return;
+            return false;
         }
 
         // Create Admin role if it doesn't exist
         if (!await roleManager.RoleExistsAsync("Admin"))
         {
             await roleManager.CreateAsync(new IdentityRole("Admin"));
+        }
+
+        // Create Customer role if it doesn't exist
+        if (!await roleManager.RoleExistsAsync("Customer"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("Customer"));
+            logger.LogInformation("Customer role created");
         }
 
         // Create default admin user
@@ -435,11 +495,16 @@ static async Task InitializeDatabaseAsync(IServiceProvider rootServices)
         await DatabaseSeeder.SeedArabicDataAsync(context);
 
         logger.LogInformation("Database seeded successfully with Arabic data");
+        return true;
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+        Console.WriteLine("An error occurred while migrating or seeding the database.");
+        Console.WriteLine(FormatExceptionChain(ex));
+        Console.WriteLine(ex.ToString());
+        return false;
     }
 }
 
@@ -447,15 +512,23 @@ static async Task InitializeDatabaseAsync(IServiceProvider rootServices)
 if (Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") != null)
 {
     var initTask = InitializeDatabaseAsync(app.Services);
-    var completed = await Task.WhenAny(initTask, Task.Delay(TimeSpan.FromSeconds(60)));
+    var completed = await Task.WhenAny(initTask, Task.Delay(TimeSpan.FromSeconds(120)));
+
     if (completed != initTask)
     {
-        Console.WriteLine("⚠ Database initialization is taking too long; continuing startup (will retry on next deploy/restart).");
+        Console.WriteLine("✗ Database initialization timed out; stopping so Railway can restart.");
+        Environment.Exit(1);
+    }
+
+    if (!await initTask)
+    {
+        Console.WriteLine("✗ Database initialization failed; stopping so Railway can restart.");
+        Environment.Exit(1);
     }
 }
 else
 {
-    await InitializeDatabaseAsync(app.Services);
+    _ = await InitializeDatabaseAsync(app.Services);
 }
 
 app.Run();

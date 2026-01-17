@@ -139,9 +139,24 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">كلاس الأيقونة (Bootstrap Icons) *</label>
-                                <input type="text" class="form-control form-control-lg" @bind="editingCategory.IconClass" 
-                                       placeholder="مثال: bi bi-palette" required />
-                                <small class="text-muted">استخدم أيقونات Bootstrap Icons</small>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text">
+                                        <i class="@(string.IsNullOrWhiteSpace(editingCategory.IconClass) ? "bi bi-palette" : editingCategory.IconClass)"></i>
+                                    </span>
+                                    <input type="text"
+                                           class="form-control"
+                                           @bind="editingCategory.IconClass"
+                                           list="biIconList"
+                                           placeholder="ابحث واختر: bi bi-palette"
+                                           required />
+                                </div>
+                                <datalist id="biIconList">
+                                    @foreach (var iconClass in bootstrapIconClasses)
+                                    {
+                                        <option value="@iconClass"></option>
+                                    }
+                                </datalist>
+                                <small class="text-muted">اكتب للبحث أو اختر من القائمة. مثال: <code>bi bi-palette</code></small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">صورة التصنيف</label>
@@ -194,9 +209,44 @@
     private IBrowserFile? selectedImage;
     private string? selectedImagePreview;
 
+    private List<string> bootstrapIconClasses = new();
+
     protected override async Task OnInitializedAsync()
     {
         await LoadCategories();
+        await LoadBootstrapIcons();
+    }
+
+    private async Task LoadBootstrapIcons()
+    {
+        try
+        {
+            var icons = await JSRuntime.InvokeAsync<string[]>("masBootstrapIcons.getIconClasses");
+            bootstrapIconClasses = icons?.Distinct().OrderBy(x => x).ToList() ?? new();
+        }
+        catch
+        {
+            bootstrapIconClasses = new()
+            {
+                "bi bi-tags",
+                "bi bi-grid",
+                "bi bi-house",
+                "bi bi-bag",
+                "bi bi-box-seam",
+                "bi bi-briefcase",
+                "bi bi-chat-dots",
+                "bi bi-envelope",
+                "bi bi-gear",
+                "bi bi-image",
+                "bi bi-lightning",
+                "bi bi-palette",
+                "bi bi-pen",
+                "bi bi-rocket",
+                "bi bi-star",
+                "bi bi-telephone",
+                "bi bi-tools"
+            };
+        }
     }
 
     private async Task HandleImageSelected(InputFileChangeEventArgs e)
@@ -229,7 +279,7 @@
         }
     }
 
-    private void ShowAddModal()
+    private async Task ShowAddModal()
     {
         editingCategory = new Category 
         { 
@@ -237,10 +287,12 @@
             NameEn = "",
             IsActive = true 
         };
+        await LoadIconsIfNeeded();
         showModal = true;
+        StateHasChanged();
     }
 
-    private void EditCategory(Category category)
+    private async Task EditCategory(Category category)
     {
         editingCategory = new Category
         {
@@ -255,7 +307,9 @@
         };
         selectedImage = null;
         selectedImagePreview = null;
+        await LoadIconsIfNeeded();
         showModal = true;
+        StateHasChanged();
     }
 
     private async Task SaveCategory()
@@ -359,5 +413,20 @@
         message = msg;
         messageClass = cssClass;
         showMessage = true;
+    }
+
+    private async Task LoadIconsIfNeeded()
+    {
+        if (bootstrapIconClasses.Any()) return;
+        try
+        {
+            var icons = await JSRuntime.InvokeAsync<string[]>("masBootstrapIcons.getIconClasses");
+            bootstrapIconClasses = icons?.ToList() ?? new();
+        }
+        catch
+        {
+            bootstrapIconClasses = new() { "bi bi-tags", "bi bi-grid", "bi bi-palette", "bi bi-house", "bi bi-box-seam" };
+        }
+        StateHasChanged();
     }
 }

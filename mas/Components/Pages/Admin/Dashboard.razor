@@ -1,5 +1,7 @@
 @page "/admin"
 @using Microsoft.AspNetCore.Authorization
+@using System.Net
+@using System.Net.Http.Json
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
 
@@ -82,6 +84,9 @@
                     <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="/admin/categories">
                         <span><i class="bi bi-tags text-success"></i> التصنيفات</span> <i class="bi bi-arrow-left"></i>
                     </a>
+                    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="/admin/customers">
+                        <span><i class="bi bi-people-fill" style="color: #6f42c1;"></i> العملاء</span> <i class="bi bi-arrow-left"></i>
+                    </a>
                     <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="/admin/contact">
                         <span><i class="bi bi-envelope text-danger"></i> رسائل التواصل</span> <i class="bi bi-arrow-left"></i>
                     </a>
@@ -113,6 +118,8 @@
 
     private readonly List<SummaryCard> summaryCards = new();
 
+    private string? loadError;
+
     [Inject] private HttpClient Http { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
@@ -123,42 +130,47 @@
 
     private async Task LoadData()
     {
+        loadError = null;
+
+        var products = await SafeGetFromJsonAsync<List<ProductDto>>("/api/products?isActive=") ?? new();
+        totalProducts = products.Count;
+        activeProducts = products.Count(p => p.IsActive);
+        featuredProducts = products.Count(p => p.IsFeatured);
+
+        var categories = await SafeGetFromJsonAsync<List<CategoryDto>>("/api/categories?isActive=") ?? new();
+        totalCategories = categories.Count;
+
+        var testimonials = await SafeGetFromJsonAsync<List<TestimonialDto>>("/api/testimonials?isActive=true") ?? new();
+        activeTestimonials = testimonials.Count;
+
+        // Contact API is protected; don't let 401/403 break the whole dashboard.
+        var messages = await SafeGetFromJsonAsync<List<ContactMessageDto>>("/api/contact?isRead=false", allowUnauthorized: true) ?? new();
+        unreadMessages = messages.Count(m => !m.IsRead);
+    }
+
+    private async Task<T?> SafeGetFromJsonAsync<T>(string url, bool allowUnauthorized = false)
+    {
         try
         {
-            var productsTask = Http.GetFromJsonAsync<List<ProductDto>>("/api/products?isActive=");
-            var categoriesTask = Http.GetFromJsonAsync<List<CategoryDto>>("/api/categories?isActive=");
-            var testimonialsTask = Http.GetFromJsonAsync<List<TestimonialDto>>("/api/testimonials?isActive=true");
+            using var response = await Http.GetAsync(url);
 
-            // Contact API requires admin; swallow unauthorized
-            Task<List<ContactMessageDto>?> messagesTask;
-            try
+            if (allowUnauthorized && (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden))
             {
-                messagesTask = Http.GetFromJsonAsync<List<ContactMessageDto>>("/api/contact?isRead=false");
-            }
-            catch
-            {
-                messagesTask = Task.FromResult<List<ContactMessageDto>?>(new());
+                return default;
             }
 
-            await Task.WhenAll(productsTask, categoriesTask, testimonialsTask, messagesTask);
+            if (!response.IsSuccessStatusCode)
+            {
+                loadError ??= $"Dashboard API error: {response.StatusCode} ({url})";
+                return default;
+            }
 
-            var products = await productsTask ?? new();
-            totalProducts = products.Count;
-            activeProducts = products.Count(p => p.IsActive);
-            featuredProducts = products.Count(p => p.IsFeatured);
-
-            var categories = await categoriesTask ?? new();
-            totalCategories = categories.Count;
-
-            var testimonials = await testimonialsTask ?? new();
-            activeTestimonials = testimonials.Count;
-
-            var messages = await messagesTask ?? new();
-            unreadMessages = messages.Count(m => !m.IsRead);
+            return await response.Content.ReadFromJsonAsync<T>();
         }
-        catch
+        catch (Exception ex)
         {
-            // keep defaults
+            loadError ??= $"Dashboard load error: {ex.Message}";
+            return default;
         }
     }
 

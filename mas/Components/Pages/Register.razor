@@ -1,0 +1,216 @@
+@page "/register"
+@using Microsoft.AspNetCore.Identity
+@using mas.Models
+@using System.ComponentModel.DataAnnotations
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject ILogger<Register> Logger
+
+<PageTitle>تسجيل حساب جديد - الماسة</PageTitle>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0" style="border-radius: 20px;">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="bi bi-person-plus-fill text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h2 class="fw-bold">إنشاء حساب جديد</h2>
+                        <p class="text-muted">سجل الآن للوصول إلى جميع الخدمات</p>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            @errorMessage
+                            @if (errorMessage.Contains("مسجل بالفعل"))
+                            {
+                                <br />
+                                <a href="/customer/login" class="alert-link fw-bold">سجل دخول من هنا</a>
+                            }
+                            <button type="button" class="btn-close" @onclick="@(() => errorMessage = null)"></button>
+                        </div>
+                    }
+
+                    @if (registrationSuccess)
+                    {
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            @successMessage
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="@model" OnValidSubmit="@HandleRegistration" FormName="registerForm">
+                            <DataAnnotationsValidator />
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-person me-1"></i> الاسم الكامل *
+                                </label>
+                                <InputText @bind-Value="model.FullName" class="form-control form-control-lg" placeholder="أدخل اسمك الكامل" />
+                                <ValidationMessage For="@(() => model.FullName)" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-envelope me-1"></i> البريد الإلكتروني *
+                                </label>
+                                <InputText @bind-Value="model.Email" type="email" class="form-control form-control-lg" placeholder="example@domain.com" />
+                                <ValidationMessage For="@(() => model.Email)" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-phone me-1"></i> رقم الجوال *
+                                </label>
+                                <InputText @bind-Value="model.PhoneNumber" class="form-control form-control-lg" placeholder="+966xxxxxxxxx" />
+                                <ValidationMessage For="@(() => model.PhoneNumber)" class="text-danger" />
+                                <small class="text-muted">مثال: +966501234567</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-lock me-1"></i> كلمة المرور *
+                                </label>
+                                <InputText @bind-Value="model.Password" type="password" class="form-control form-control-lg" placeholder="••••••••" />
+                                <ValidationMessage For="@(() => model.Password)" class="text-danger" />
+                                <small class="text-muted">6 أحرف على الأقل</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="form-check form-switch">
+                                    <InputCheckbox @bind-Value="model.AcceptsMarketing" class="form-check-input" id="marketing" />
+                                    <label class="form-check-label" for="marketing">
+                                        أرغب في استقبال العروض والرسائل الترويجية
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg w-100 mb-3" disabled="@isSubmitting">
+                                @if (isSubmitting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="bi bi-check-circle me-2"></i>
+                                إنشاء الحساب
+                            </button>
+
+                            <div class="text-center">
+                                <p class="text-muted mb-0">
+                                    لديك حساب بالفعل؟
+                                    <a href="/customer/login" class="text-primary fw-bold">سجل دخولك</a>
+                                </p>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterModel model = new();
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool registrationSuccess = false;
+
+    private async Task HandleRegistration()
+    {
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            // Check if user already exists
+            var existingUser = await UserManager.FindByEmailAsync(model.Email);
+            if (existingUser != null)
+            {
+                errorMessage = "البريد الإلكتروني مسجل بالفعل. ";
+                Logger.LogWarning("Registration attempted for existing email: {Email}", model.Email);
+                return;
+            }
+
+            var user = new ApplicationUser
+            {
+                UserName = model.Email,
+                Email = model.Email,
+                PhoneNumber = model.PhoneNumber,
+                FullName = model.FullName,
+                AcceptsMarketing = model.AcceptsMarketing,
+                EmailConfirmed = true
+            };
+
+            var result = await UserManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                // Assign Customer role
+                var roleResult = await UserManager.AddToRoleAsync(user, "Customer");
+                if (!roleResult.Succeeded)
+                {
+                    Logger.LogError("Failed to add Customer role to {Email}: {Errors}", 
+                        user.Email, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                }
+
+                Logger.LogInformation("New customer registered: {Email}", user.Email);
+
+                registrationSuccess = true;
+                successMessage = "تم إنشاء الحساب بنجاح! جاري تحويلك لتسجيل الدخول...";
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/customer/login");
+            }
+            else
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                
+                if (errors.Any(e => e.Contains("already taken")))
+                {
+                    errorMessage = "البريد الإلكتروني مسجل بالفعل. ";
+                }
+                else
+                {
+                    errorMessage = string.Join(", ", errors);
+                }
+                
+                Logger.LogWarning("Registration failed for {Email}: {Errors}", model.Email, errorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Registration error for {Email}", model.Email);
+            errorMessage = $"حدث خطأ أثناء إنشاء الحساب: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    public class RegisterModel
+    {
+        [Required(ErrorMessage = "الاسم الكامل مطلوب")]
+        [StringLength(100, ErrorMessage = "الاسم لا يمكن أن يتجاوز 100 حرف")]
+        public string FullName { get; set; } = "";
+
+        [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
+        [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صحيح")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "رقم الجوال مطلوب")]
+        [Phone(ErrorMessage = "رقم الجوال غير صحيح")]
+        [RegularExpression(@"^\+?[0-9]{10,15}$", ErrorMessage = "رقم الجوال يجب أن يكون بين 10-15 رقم")]
+        public string PhoneNumber { get; set; } = "";
+
+        [Required(ErrorMessage = "كلمة المرور مطلوبة")]
+        [StringLength(100, ErrorMessage = "كلمة المرور يجب أن تكون {2} أحرف على الأقل", MinimumLength = 6)]
+        public string Password { get; set; } = "";
+
+        public bool AcceptsMarketing { get; set; } = true;
+    }
+}

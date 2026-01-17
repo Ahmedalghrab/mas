@@ -4,9 +4,6 @@
 @using mas.Models
 @using System.Net.Http.Json
 @using System.Net.Http.Headers
-@using SixLabors.ImageSharp
-@using SixLabors.ImageSharp.Formats.Jpeg
-@using SixLabors.ImageSharp.Processing
 @using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
@@ -314,45 +311,26 @@
                 return;
             }
 
-            var uploadsFolder = Path.Combine(Environment.WebRootPath, "uploads", "products");
-            var thumbnailFolder = Path.Combine(Environment.WebRootPath, "uploads", "thumbnails");
-            Directory.CreateDirectory(uploadsFolder);
-            Directory.CreateDirectory(thumbnailFolder);
+            // Upload to Cloudinary via ImageController
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(MaxUploadBytes));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
 
-            // Always store as JPEG for consistency
-            var fileName = $"{Guid.NewGuid()}.jpg";
-            var filePath = Path.Combine(uploadsFolder, fileName);
-            var thumbnailPath = Path.Combine(thumbnailFolder, fileName);
-
-            await using var readStream = file.OpenReadStream(MaxUploadBytes);
-            using var image = await Image.LoadAsync(readStream);
-
-            // Enhance + normalize + resize
-            image.Mutate(x => x
-                .AutoOrient()
-                .Resize(new ResizeOptions
-                {
-                    Size = new Size(1200, 1200),
-                    Mode = ResizeMode.Max
-                })
-                .GaussianSharpen(1.5f)
-                .Saturate(1.2f)
-                .Contrast(1.1f)
-                .Brightness(1.05f));
-
-            await image.SaveAsync(filePath, new JpegEncoder { Quality = 90 });
-
-            // Thumbnail
-            image.Mutate(x => x.Resize(new ResizeOptions
+            var imageResponse = await Http.PostAsync("api/Image/upload?folder=products", content);
+            if (!imageResponse.IsSuccessStatusCode)
             {
-                Size = new Size(300, 300),
-                Mode = ResizeMode.Crop
-            }));
+                var errorContent = await imageResponse.Content.ReadAsStringAsync();
+                errorMessage = $"فشل رفع الصورة: {errorContent}";
+                return;
+            }
 
-            await image.SaveAsync(thumbnailPath, new JpegEncoder { Quality = 85 });
-
-            product.ImagePath = $"/uploads/products/{fileName}";
-            product.ThumbnailPath = $"/uploads/thumbnails/{fileName}";
+            var imageResult = await imageResponse.Content.ReadFromJsonAsync<ImageUploadResult>();
+            if (imageResult != null)
+            {
+                product.ImagePath = imageResult.ImagePath;
+                product.ThumbnailPath = imageResult.ThumbnailPath;
+            }
         }
         catch (Exception ex)
         {
@@ -493,6 +471,13 @@
     }
 
     public class ImageUploadResponse
+    {
+        public string ImagePath { get; set; } = "";
+        public string ThumbnailPath { get; set; } = "";
+        public string FileName { get; set; } = "";
+    }
+
+    private class ImageUploadResult
     {
         public string ImagePath { get; set; } = "";
         public string ThumbnailPath { get; set; } = "";

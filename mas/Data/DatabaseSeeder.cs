@@ -7,6 +7,40 @@ namespace mas.Data
 {
     public static class DatabaseSeeder
     {
+        private static async Task EnsureSiteSettingsAsync(ApplicationDbContext context)
+        {
+            var settings = await context.SiteSettings.FirstOrDefaultAsync();
+            if (settings != null)
+            {
+                return;
+            }
+
+            settings = new SiteSettings
+            {
+                SiteName = "الماسة",
+                SiteNameEn = "Almasa",
+                Email = "info@almasa.com",
+                PhoneNumber = "+966500000000",
+                WhatsAppNumber = "966500000000",
+                Address = "المملكة العربية السعودية",
+                AboutAr = "نقدم أفضل الخدمات الأكاديمية والتقنية للطلاب بجودة عالية وأسعار مناسبة",
+                AboutEn = "We provide the best academic and technical services for students with high quality and reasonable prices",
+                VisionAr = "أن نكون المنصة الأولى في تقديم الخدمات الأكاديمية المتميزة",
+                VisionEn = "To be the first platform in providing distinguished academic services",
+                MissionAr = "تقديم خدمات عالية الجودة تساعد الطلاب على تحقيق أهدافهم الأكاديمية",
+                MissionEn = "Providing high quality services that help students achieve their academic goals",
+                EnableWhatsAppButton = true,
+                PrimaryColor = "#9B59B6",
+                SecondaryColor = "#8E44AD",
+                FacebookUrl = "https://facebook.com/almasa",
+                InstagramUrl = "https://instagram.com/almasa",
+                TwitterUrl = "https://twitter.com/almasa"
+            };
+
+            await context.SiteSettings.AddAsync(settings);
+            await context.SaveChangesAsync();
+        }
+
         public static async Task SeedArabicDataAsync(ApplicationDbContext context)
         {
             // Set connection to use UTF-8 (SQLite only)
@@ -14,6 +48,45 @@ namespace mas.Data
             {
                 await context.Database.ExecuteSqlRawAsync("PRAGMA encoding = 'UTF-8';");
                 await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = WAL;");
+            }
+
+            // For PostgreSQL: Add new ApplicationUser columns if they don't exist
+            if (context.Database.IsNpgsql())
+            {
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync(@"
+                        DO $$ 
+                        BEGIN 
+                            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='AspNetUsers' AND column_name='acceptsmarketing') THEN
+                                ALTER TABLE ""AspNetUsers"" ADD COLUMN ""AcceptsMarketing"" boolean NOT NULL DEFAULT true;
+                            END IF;
+                            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='AspNetUsers' AND column_name='lastloginat') THEN
+                                ALTER TABLE ""AspNetUsers"" ADD COLUMN ""LastLoginAt"" timestamp without time zone NULL;
+                            END IF;
+                        END $$;
+                    ");
+                }
+                catch { /* Columns already exist or permission issue */ }
+            }
+
+            var forceReseed = string.Equals(Environment.GetEnvironmentVariable("MAS_FORCE_RESEED"), "true", StringComparison.OrdinalIgnoreCase)
+                || Environment.GetEnvironmentVariable("MAS_FORCE_RESEED") == "1";
+
+            // Avoid wiping production data on every restart.
+            // Only perform the destructive reseed when the DB is empty or explicitly forced.
+            if (!forceReseed)
+            {
+                var hasAnyContent = await context.Categories.AnyAsync()
+                    || await context.Products.AnyAsync()
+                    || await context.Testimonials.AnyAsync()
+                    || await context.FAQs.AnyAsync();
+
+                if (hasAnyContent)
+                {
+                    await EnsureSiteSettingsAsync(context);
+                    return;
+                }
             }
             
             // حذف البيانات القديمة
@@ -158,33 +231,7 @@ namespace mas.Data
             await context.SaveChangesAsync();
 
             // إضافة إعدادات الموقع
-            var settings = await context.SiteSettings.FirstOrDefaultAsync();
-            if (settings == null)
-            {
-                settings = new SiteSettings
-                {
-                    SiteName = "الماسة",
-                    SiteNameEn = "Almasa",
-                    Email = "info@almasa.com",
-                    PhoneNumber = "+966500000000",
-                    WhatsAppNumber = "966500000000",
-                    Address = "المملكة العربية السعودية",
-                    AboutAr = "نقدم أفضل الخدمات الأكاديمية والتقنية للطلاب بجودة عالية وأسعار مناسبة",
-                    AboutEn = "We provide the best academic and technical services for students with high quality and reasonable prices",
-                    VisionAr = "أن نكون المنصة الأولى في تقديم الخدمات الأكاديمية المتميزة",
-                    VisionEn = "To be the first platform in providing distinguished academic services",
-                    MissionAr = "تقديم خدمات عالية الجودة تساعد الطلاب على تحقيق أهدافهم الأكاديمية",
-                    MissionEn = "Providing high quality services that help students achieve their academic goals",
-                    EnableWhatsAppButton = true,
-                    PrimaryColor = "#9B59B6",
-                    SecondaryColor = "#8E44AD",
-                    FacebookUrl = "https://facebook.com/almasa",
-                    InstagramUrl = "https://instagram.com/almasa",
-                    TwitterUrl = "https://twitter.com/almasa"
-                };
-                await context.SiteSettings.AddAsync(settings);
-                await context.SaveChangesAsync();
-            }
+            await EnsureSiteSettingsAsync(context);
 
             // إضافة آراء العملاء
             var testimonials = await context.Testimonials.ToListAsync();

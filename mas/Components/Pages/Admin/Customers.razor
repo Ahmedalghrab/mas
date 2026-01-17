@@ -1,0 +1,328 @@
+@page "/admin/customers"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using mas.Models
+@attribute [Authorize(Policy = "AdminOnly")]
+@inject UserManager<ApplicationUser> UserManager
+@inject ILogger<Customers> Logger
+@rendermode InteractiveServer
+
+<PageTitle>إدارة العملاء - لوحة التحكم</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-5">
+                    <i class="bi bi-people-fill"></i> إدارة العملاء
+                </h1>
+                <button class="btn btn-success btn-lg" @onclick="ExportMarketingList">
+                    <i class="bi bi-download"></i> تصدير قائمة التسويق
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                                <i class="bi bi-people fs-3 text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-0">إجمالي العملاء</h6>
+                            <h3 class="mb-0">@totalCustomers</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                                <i class="bi bi-bell fs-3 text-success"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-0">مشتركين في التسويق</h6>
+                            <h3 class="mb-0">@marketingSubscribers</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3">
+                                <i class="bi bi-person-plus fs-3 text-info"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-0">جديد هذا الشهر</h6>
+                            <h3 class="mb-0">@newThisMonth</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+                                <i class="bi bi-clock-history fs-3 text-warning"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-0">نشط اليوم</h6>
+                            <h3 class="mb-0">@activeToday</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    }
+    else if (customers == null || !customers.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-3"></i>
+            <p class="mt-2 mb-0">لا يوجد عملاء مسجلين حتى الآن.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0">قائمة العملاء (@customers.Count)</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="search" class="form-control" placeholder="بحث بالاسم أو البريد..." @bind="searchQuery" @bind:event="oninput" @onkeyup="FilterCustomers" />
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الاسم</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>رقم الجوال</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>آخر دخول</th>
+                                <th>التسويق</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var customer in filteredCustomers)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                                <i class="bi bi-person"></i>
+                                            </div>
+                                            <strong>@(customer.FullName ?? "غير محدد")</strong>
+                                        </div>
+                                    </td>
+                                    <td>@customer.Email</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(customer.PhoneNumber))
+                                        {
+                                            <a href="tel:@customer.PhoneNumber" class="text-decoration-none">
+                                                <i class="bi bi-telephone me-1"></i>@customer.PhoneNumber
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@customer.CreatedAt.ToString("dd/MM/yyyy")</small>
+                                    </td>
+                                    <td>
+                                        @if (customer.LastLoginAt.HasValue)
+                                        {
+                                            <small>@customer.LastLoginAt.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (customer.AcceptsMarketing)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> نعم
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-x-circle"></i> لا
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (customer.EmailConfirmed)
+                                        {
+                                            <span class="badge bg-success">نشط</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">معلق</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showMessage)
+    {
+        <div class="alert @messageClass alert-dismissible fade show mt-3" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => showMessage = false"></button>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ApplicationUser> customers = new();
+    private List<ApplicationUser> filteredCustomers = new();
+    private bool loading = true;
+    private bool showMessage = false;
+    private string message = "";
+    private string messageClass = "";
+    private string searchQuery = "";
+
+    private int totalCustomers = 0;
+    private int marketingSubscribers = 0;
+    private int newThisMonth = 0;
+    private int activeToday = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomers();
+    }
+
+    private async Task LoadCustomers()
+    {
+        loading = true;
+        try
+        {
+            var allUsers = UserManager.Users.ToList();
+            customers = new List<ApplicationUser>();
+
+            foreach (var user in allUsers)
+            {
+                var roles = await UserManager.GetRolesAsync(user);
+                if (roles.Contains("Customer"))
+                {
+                    customers.Add(user);
+                }
+            }
+
+            customers = customers.OrderByDescending(c => c.CreatedAt).ToList();
+            filteredCustomers = customers;
+
+            // Calculate statistics
+            totalCustomers = customers.Count;
+            marketingSubscribers = customers.Count(c => c.AcceptsMarketing);
+            
+            var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+            newThisMonth = customers.Count(c => c.CreatedAt >= monthStart);
+            
+            var today = DateTime.UtcNow.Date;
+            activeToday = customers.Count(c => c.LastLoginAt.HasValue && c.LastLoginAt.Value.Date == today);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading customers");
+            ShowMessage("حدث خطأ أثناء تحميل العملاء", "alert-danger");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void FilterCustomers()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            filteredCustomers = customers;
+            return;
+        }
+
+        var query = searchQuery.ToLower();
+        filteredCustomers = customers.Where(c =>
+            (c.FullName?.ToLower().Contains(query) ?? false) ||
+            (c.Email?.ToLower().Contains(query) ?? false) ||
+            (c.PhoneNumber?.Contains(query) ?? false)
+        ).ToList();
+    }
+
+    private async Task ExportMarketingList()
+    {
+        try
+        {
+            var marketingList = customers
+                .Where(c => c.AcceptsMarketing && !string.IsNullOrEmpty(c.Email))
+                .Select(c => new
+                {
+                    Name = c.FullName ?? "غير محدد",
+                    Email = c.Email,
+                    Phone = c.PhoneNumber ?? "",
+                    RegisteredDate = c.CreatedAt.ToString("dd/MM/yyyy")
+                })
+                .ToList();
+
+            // For now, just show count. In production, implement CSV/Excel export.
+            ShowMessage($"تم العثور على {marketingList.Count} عميل مشترك في التسويق", "alert-success");
+            Logger.LogInformation("Marketing list exported: {Count} customers", marketingList.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting marketing list");
+            ShowMessage("حدث خطأ أثناء التصدير", "alert-danger");
+        }
+    }
+
+    private void ShowMessage(string msg, string cssClass)
+    {
+        message = msg;
+        messageClass = cssClass;
+        showMessage = true;
+    }
+}
