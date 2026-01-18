@@ -5,7 +5,6 @@
 @using System.Net.Http.Json
 @using System.Net.Http.Headers
 @using Microsoft.AspNetCore.Authorization
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
 
 <PageTitle>@(Id.HasValue ? "تعديل خدمة" : "إضافة خدمة جديدة") - لوحة التحكم</PageTitle>

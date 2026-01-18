@@ -1,7 +1,6 @@
 @page "/admin/settings"
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
 
 <PageTitle>Site Settings - ALMASS Admin</PageTitle>

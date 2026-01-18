@@ -1,7 +1,6 @@
 @page "/admin/pages"
 @using mas.Models
 @using Microsoft.AspNetCore.Authorization
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
 
 <PageTitle>إدارة الصفحات - لوحة التحكم</PageTitle>

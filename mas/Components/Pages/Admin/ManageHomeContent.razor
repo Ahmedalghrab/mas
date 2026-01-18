@@ -1,7 +1,6 @@
 @page "/admin/home-content"
 @using mas.Models
 @using Microsoft.AspNetCore.Authorization
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
 
 <PageTitle>إدارة محتوى الصفحة الرئيسية - لوحة التحكم</PageTitle>

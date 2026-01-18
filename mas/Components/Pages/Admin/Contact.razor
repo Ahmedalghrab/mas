@@ -2,7 +2,6 @@
 @using Microsoft.AspNetCore.Authorization
 @using mas.Models
 @using System.Net.Http.Json
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = "AdminOnly")]
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
