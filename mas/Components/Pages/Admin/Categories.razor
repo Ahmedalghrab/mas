@@ -143,20 +143,15 @@
                                     <span class="input-group-text">
                                         <i class="@(string.IsNullOrWhiteSpace(editingCategory.IconClass) ? "bi bi-palette" : editingCategory.IconClass)"></i>
                                     </span>
-                                    <input type="text"
-                                           class="form-control"
-                                           @bind="editingCategory.IconClass"
-                                           list="biIconList"
-                                           placeholder="ابحث واختر: bi bi-palette"
-                                           required />
+                                    <select class="form-select" @bind="editingCategory.IconClass" required>
+                                        <option value="">اختر أيقونة...</option>
+                                        @foreach (var iconClass in bootstrapIconClasses)
+                                        {
+                                            <option value="@iconClass">@iconClass</option>
+                                        }
+                                    </select>
                                 </div>
-                                <datalist id="biIconList">
-                                    @foreach (var iconClass in bootstrapIconClasses)
-                                    {
-                                        <option value="@iconClass"></option>
-                                    }
-                                </datalist>
-                                <small class="text-muted">اكتب للبحث أو اختر من القائمة. مثال: <code>bi bi-palette</code></small>
+                                <small class="text-muted">اختر أيقونة من القائمة</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">صورة التصنيف</label>
