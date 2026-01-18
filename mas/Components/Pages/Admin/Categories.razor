@@ -118,7 +118,8 @@
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body">
-                    <form @onsubmit="SaveCategory">
+                    <EditForm Model="@editingCategory" OnValidSubmit="SaveCategory">
+                        <DataAnnotationsValidator />
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">الاسم بالعربي *</label>
@@ -189,7 +190,7 @@
                                 <i class="bi bi-check-circle"></i> حفظ
                             </button>
                         </div>
-                    </form>
+                    </EditForm>
                 </div>
             </div>
         </div>
