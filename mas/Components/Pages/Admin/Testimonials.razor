@@ -1,4 +1,5 @@
 @page "/admin/testimonials"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using System.Net.Http.Json
 @attribute [Authorize(Policy = "AdminOnly")]
@@ -103,9 +104,80 @@
     }
 </div>
 
+<!-- Modal for Add/Edit -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-@(isEditMode ? "pencil" : "plus-circle")"></i>
+                        @(isEditMode ? "تعديل تقييم" : "إضافة تقييم جديد")
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">اسم العميل</label>
+                        <input type="text" class="form-control" @bind="currentTestimonial.CustomerName" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">صورة العميل (URL)</label>
+                        <input type="text" class="form-control" @bind="currentTestimonial.CustomerImage" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">التقييم (بالعربية)</label>
+                        <textarea class="form-control" rows="4" @bind="currentTestimonial.ContentAr"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">التقييم (بالإنجليزية)</label>
+                        <textarea class="form-control" rows="4" @bind="currentTestimonial.ContentEn"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">التقييم (من 1 إلى 5)</label>
+                        <select class="form-select" @bind="currentTestimonial.Rating">
+                            <option value="1">⭐ 1 نجمة</option>
+                            <option value="2">⭐⭐ 2 نجمة</option>
+                            <option value="3">⭐⭐⭐ 3 نجوم</option>
+                            <option value="4">⭐⭐⭐⭐ 4 نجوم</option>
+                            <option value="5">⭐⭐⭐⭐⭐ 5 نجوم</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ترتيب العرض</label>
+                        <input type="number" class="form-control" @bind="currentTestimonial.DisplayOrder" />
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" @bind="currentTestimonial.IsActive" id="isActive">
+                        <label class="form-check-label" for="isActive">
+                            نشط
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveTestimonial">
+                        <i class="bi bi-save"></i> حفظ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<TestimonialDto> testimonials = new();
     private bool loading = true;
+    private bool showModal = false;
+    private bool isEditMode = false;
+    private TestimonialDto currentTestimonial = new();
 
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private ILogger<Testimonials> Logger { get; set; } = default!;
@@ -143,29 +215,107 @@
 
     private void AddNewTestimonial()
     {
-        // Implement add testimonial functionality
-        Logger.LogInformation("Add new testimonial");
+        currentTestimonial = new TestimonialDto
+        {
+            Rating = 5,
+            DisplayOrder = testimonials.Count + 1,
+            IsActive = true
+        };
+        isEditMode = false;
+        showModal = true;
     }
 
     private void EditTestimonial(TestimonialDto testimonial)
     {
-        // Implement edit testimonial functionality
-        Logger.LogInformation($"Edit testimonial {testimonial.Id}");
+        currentTestimonial = new TestimonialDto
+        {
+            Id = testimonial.Id,
+            CustomerName = testimonial.CustomerName,
+            CustomerImage = testimonial.CustomerImage,
+            ContentAr = testimonial.ContentAr,
+            ContentEn = testimonial.ContentEn,
+            Rating = testimonial.Rating,
+            DisplayOrder = testimonial.DisplayOrder,
+            IsActive = testimonial.IsActive
+        };
+        isEditMode = true;
+        showModal = true;
+    }
+
+    private async Task SaveTestimonial()
+    {
+        try
+        {
+            HttpResponseMessage response;
+            
+            if (isEditMode)
+            {
+                response = await Http.PutAsJsonAsync($"/api/testimonials/{currentTestimonial.Id}", currentTestimonial);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("/api/testimonials", currentTestimonial);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadTestimonials();
+                CloseModal();
+            }
+            else
+            {
+                Logger.LogError("Error saving testimonial: {StatusCode}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving testimonial");
+        }
     }
 
     private async Task DeleteTestimonial(int id)
     {
-        // Implement delete testimonial functionality
-        Logger.LogInformation($"Delete testimonial {id}");
+        if (!await ConfirmDelete())
+            return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"/api/testimonials/{id}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadTestimonials();
+            }
+            else
+            {
+                Logger.LogError("Error deleting testimonial: {StatusCode}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting testimonial");
+        }
+    }
+
+    private async Task<bool> ConfirmDelete()
+    {
+        // In a real app, you'd use a proper confirmation dialog
+        return true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentTestimonial = new();
     }
 
     public class TestimonialDto
     {
         public int Id { get; set; }
-        public string CustomerName { get; set; } = null!;
+        public string CustomerName { get; set; } = "";
         public string? CustomerImage { get; set; }
-        public string ContentAr { get; set; } = null!;
-        public string ContentEn { get; set; } = null!;
+        public string ContentAr { get; set; } = "";
+        public string ContentEn { get; set; } = "";
         public int Rating { get; set; }
         public int DisplayOrder { get; set; }
         public bool IsActive { get; set; }
