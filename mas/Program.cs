@@ -468,6 +468,36 @@ static async Task<bool> InitializeDatabaseAsync(IServiceProvider rootServices)
             return false;
         }
 
+        // CRITICAL: Add ApplicationUser columns BEFORE any user queries
+        if (context.Database.IsNpgsql())
+        {
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(@"
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='AspNetUsers' AND column_name='acceptsmarketing') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""AcceptsMarketing"" boolean NOT NULL DEFAULT true;
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='AspNetUsers' AND column_name='lastloginat') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""LastLoginAt"" timestamp without time zone NULL;
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='AspNetUsers' AND column_name='createdat') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""CreatedAt"" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='AspNetUsers' AND column_name='fullname') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""FullName"" text NULL;
+                        END IF;
+                    END $$;
+                ");
+                Console.WriteLine("✓ ApplicationUser columns added/checked successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠ Warning adding ApplicationUser columns: {ex.Message}");
+            }
+        }
+
         // Create Admin role if it doesn't exist
         if (!await roleManager.RoleExistsAsync("Admin"))
         {
