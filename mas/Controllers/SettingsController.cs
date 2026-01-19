@@ -75,11 +75,11 @@ var existing = await _context.SiteSettings.FirstOrDefaultAsync();
  existing.EnableTestimonials = settings.EnableTestimonials;
             existing.MaintenanceMode = settings.MaintenanceMode;
             existing.PrimaryColor = settings.PrimaryColor;
- existing.SecondaryColor = settings.SecondaryColor;
+            existing.SecondaryColor = settings.SecondaryColor;
             existing.UpdatedAt = DateTime.UtcNow;
-      }
+        }
 
         await _context.SaveChangesAsync();
-    return NoContent();
+        return Ok(settings);
     }
 }
