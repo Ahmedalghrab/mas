@@ -9,9 +9,19 @@ namespace mas.Data
     {
         private static async Task EnsureSiteSettingsAsync(ApplicationDbContext context)
         {
-            var settings = await context.SiteSettings.FirstOrDefaultAsync();
-            if (settings != null)
+            SiteSettings? settings = null;
+            try
             {
+                settings = await context.SiteSettings.FirstOrDefaultAsync();
+                if (settings != null)
+                {
+                    return;
+                }
+            }
+            catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.Message.Contains("no such column"))
+            {
+                // Column doesn't exist yet, will be added by migration
+                Console.WriteLine($"⚠️ SiteSettings table schema outdated: {ex.Message}");
                 return;
             }
 
