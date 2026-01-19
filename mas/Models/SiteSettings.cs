@@ -3,8 +3,8 @@ namespace mas.Models;
 public class SiteSettings
 {
     public int Id { get; set; }
-    public required string SiteName { get; set; } = "ALMASS";
-    public required string SiteNameEn { get; set; } = "ALMASS";
+    public string SiteName { get; set; } = "ALMASS";
+    public string SiteNameEn { get; set; } = "ALMASS";
     public string? LogoPath { get; set; }
     public string? FaviconPath { get; set; }
     
@@ -43,5 +43,6 @@ public class SiteSettings
     public string? PrimaryColor { get; set; } = "#0d6efd";
     public string? SecondaryColor { get; set; } = "#6c757d";
     
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

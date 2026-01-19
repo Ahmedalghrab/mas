@@ -318,11 +318,11 @@
         catch (Exception ex)
         {
             errorMessage = $"خطأ في الحفظ: {ex.Message}";
+            Console.WriteLine($"Settings save error: {ex}");
         }
         finally
         {
             saving = false;
         }
     }
-}
 }
