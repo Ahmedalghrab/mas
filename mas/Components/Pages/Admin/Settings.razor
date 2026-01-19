@@ -1,7 +1,9 @@
 @page "/admin/settings"
 @rendermode InteractiveServer
-@using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
+@using mas.Data
+@using mas.Models
+@using Microsoft.EntityFrameworkCore
 @attribute [Authorize(Policy = "AdminOnly")]
 
 <PageTitle>Site Settings - ALMASS Admin</PageTitle>
@@ -210,9 +212,9 @@
 </div>
 
 @code {
-    [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private IDbContextFactory<ApplicationDbContext> DbFactory { get; set; } = default!;
 
-    private SiteSettingsDto settings = new();
+    private SiteSettings settings = new();
     private bool loading = true;
     private bool saving = false;
     private string? successMessage;
@@ -228,15 +230,29 @@
         loading = true;
         try
         {
-            var result = await Http.GetFromJsonAsync<SiteSettingsDto>("/api/settings");
+            using var context = await DbFactory.CreateDbContextAsync();
+            var result = await context.SiteSettings.FirstOrDefaultAsync();
             if (result != null)
             {
                 settings = result;
             }
+            else
+            {
+                settings = new SiteSettings
+                {
+                    SiteName = "ALMASS",
+                    SiteNameEn = "ALMASS",
+                    PrimaryColor = "#0d6efd",
+                    SecondaryColor = "#6c757d",
+                    EnableWhatsAppButton = true,
+                    EnableDarkMode = true,
+                    EnableTestimonials = true
+                };
+            }
         }
         catch
         {
-            settings = new SiteSettingsDto();
+            settings = new SiteSettings();
         }
         finally
         {
@@ -252,57 +268,61 @@
 
         try
         {
-            var response = await Http.PutAsJsonAsync("/api/settings", settings);
-            if (response.IsSuccessStatusCode)
+            using var context = await DbFactory.CreateDbContextAsync();
+            var existing = await context.SiteSettings.FirstOrDefaultAsync();
+            
+            if (existing == null)
             {
-                successMessage = "Settings saved successfully!";
-                await Task.Delay(2000);
-                successMessage = null;
+                settings.Id = 1;
+                settings.CreatedAt = DateTime.UtcNow;
+                settings.UpdatedAt = DateTime.UtcNow;
+                context.SiteSettings.Add(settings);
             }
             else
             {
-                errorMessage = "Failed to save settings";
+                existing.SiteName = settings.SiteName;
+                existing.SiteNameEn = settings.SiteNameEn;
+                existing.LogoPath = settings.LogoPath;
+                existing.FaviconPath = settings.FaviconPath;
+                existing.WhatsAppNumber = settings.WhatsAppNumber;
+                existing.PhoneNumber = settings.PhoneNumber;
+                existing.Email = settings.Email;
+                existing.Address = settings.Address;
+                existing.FacebookUrl = settings.FacebookUrl;
+                existing.TwitterUrl = settings.TwitterUrl;
+                existing.InstagramUrl = settings.InstagramUrl;
+                existing.LinkedInUrl = settings.LinkedInUrl;
+                existing.AboutAr = settings.AboutAr;
+                existing.AboutEn = settings.AboutEn;
+                existing.VisionAr = settings.VisionAr;
+                existing.VisionEn = settings.VisionEn;
+                existing.MissionAr = settings.MissionAr;
+                existing.MissionEn = settings.MissionEn;
+                existing.MetaDescriptionAr = settings.MetaDescriptionAr;
+                existing.MetaDescriptionEn = settings.MetaDescriptionEn;
+                existing.MetaKeywords = settings.MetaKeywords;
+                existing.EnableWhatsAppButton = settings.EnableWhatsAppButton;
+                existing.EnableDarkMode = settings.EnableDarkMode;
+                existing.EnableTestimonials = settings.EnableTestimonials;
+                existing.MaintenanceMode = settings.MaintenanceMode;
+                existing.PrimaryColor = settings.PrimaryColor;
+                existing.SecondaryColor = settings.SecondaryColor;
+                existing.UpdatedAt = DateTime.UtcNow;
             }
+
+            await context.SaveChangesAsync();
+            successMessage = "تم حفظ الإعدادات بنجاح!";
+            await Task.Delay(2000);
+            successMessage = null;
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error: {ex.Message}";
+            errorMessage = $"خطأ في الحفظ: {ex.Message}";
         }
         finally
         {
             saving = false;
         }
     }
-
-    public class SiteSettingsDto
-    {
-        public int Id { get; set; }
-        public string SiteName { get; set; } = "ALMASS";
-        public string SiteNameEn { get; set; } = "ALMASS";
-        public string? LogoPath { get; set; }
-        public string? FaviconPath { get; set; }
-        public string? WhatsAppNumber { get; set; }
-        public string? PhoneNumber { get; set; }
-        public string? Email { get; set; }
-        public string? Address { get; set; }
-        public string? FacebookUrl { get; set; }
-        public string? TwitterUrl { get; set; }
-        public string? InstagramUrl { get; set; }
-        public string? LinkedInUrl { get; set; }
-        public string? AboutAr { get; set; }
-        public string? AboutEn { get; set; }
-        public string? VisionAr { get; set; }
-        public string? VisionEn { get; set; }
-        public string? MissionAr { get; set; }
-        public string? MissionEn { get; set; }
-        public string? MetaDescriptionAr { get; set; }
-        public string? MetaDescriptionEn { get; set; }
-        public string? MetaKeywords { get; set; }
-        public bool EnableWhatsAppButton { get; set; } = true;
-        public bool EnableDarkMode { get; set; } = true;
-        public bool EnableTestimonials { get; set; } = true;
-        public bool MaintenanceMode { get; set; }
-        public string? PrimaryColor { get; set; } = "#0d6efd";
-        public string? SecondaryColor { get; set; } = "#6c757d";
-    }
+}
 }
