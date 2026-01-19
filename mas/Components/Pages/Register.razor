@@ -1,8 +1,11 @@
 @page "/register"
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Forms
 @using mas.Models
 @using System.ComponentModel.DataAnnotations
+@rendermode InteractiveServer
 @inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
 @inject NavigationManager Navigation
 @inject ILogger<Register> Logger
 
@@ -44,7 +47,7 @@
                     }
                     else
                     {
-                        <EditForm Model="@model" OnValidSubmit="@HandleRegistration" FormName="registerForm">
+                        <EditForm Model="@model" OnValidSubmit="@HandleRegistration">
                             <DataAnnotationsValidator />
 
                             <div class="mb-3">

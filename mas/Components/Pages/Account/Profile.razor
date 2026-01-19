@@ -1,0 +1,99 @@
+@page "/account/profile"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@attribute [Authorize]
+
+<PageTitle>الملف الشخصي - الماسة</PageTitle>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card shadow-lg border-0" style="border-radius: 20px;">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" 
+                            style="width: 100px; height: 100px;">
+                            <i class="bi bi-person fs-1 text-primary"></i>
+                        </div>
+                        <h2 class="fw-bold">الملف الشخصي</h2>
+                        <p class="text-muted">معلومات حسابك</p>
+                    </div>
+
+                    @if (loading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">جاري التحميل...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (user != null)
+                    {
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">البريد الإلكتروني</label>
+                                <input type="email" class="form-control form-control-lg" value="@user.Email" readonly />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">اسم المستخدم</label>
+                                <input type="text" class="form-control form-control-lg" value="@user.UserName" readonly />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">الهاتف</label>
+                                <input type="tel" class="form-control form-control-lg" value="@(user.PhoneNumber ?? "لم يتم إضافة رقم الهاتف")" readonly />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">تاريخ إنشاء الحساب</label>
+                                <input type="text" class="form-control form-control-lg" value="@user.Id" disabled style="display:none;" />
+                                <p class="form-control form-control-lg bg-light">
+                                    @DateTime.Now.ToString("dd/MM/yyyy")
+                                </p>
+                            </div>
+
+                            <hr class="my-4" />
+
+                            <h5 class="fw-bold mb-3">الخيارات</h5>
+                            <div class="d-grid gap-2">
+                                <a href="/account/orders" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-box-seam me-2"></i> عرض طلبياتي
+                                </a>
+                                <a href="/account/change-password" class="btn btn-warning btn-lg">
+                                    <i class="bi bi-key me-2"></i> تغيير كلمة المرور
+                                </a>
+                                <form action="/Account/Logout" method="post" class="m-0">
+                                    <button type="submit" class="btn btn-danger btn-lg w-100">
+                                        <i class="bi bi-box-arrow-right me-2"></i> تسجيل الخروج
+                                    </button>
+                                </form>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ApplicationUser? user;
+    private bool loading = true;
+
+    [Inject] private UserManager<ApplicationUser> UserManager { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = authState.User;
+
+        if (currentUser.Identity?.IsAuthenticated == true)
+        {
+            user = await UserManager.FindByNameAsync(currentUser.Identity.Name);
+        }
+
+        loading = false;
+    }
+}

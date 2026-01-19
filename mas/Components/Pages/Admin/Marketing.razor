@@ -1,69 +1,193 @@
 @page "/admin/marketing"
+@rendermode InteractiveServer
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
 @attribute [Authorize(Policy = "AdminOnly")]
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Marketing - ALMASS Admin</PageTitle>
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4" style="background-color: #f8f9fa;">
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="display-5">
+            <h1 class="display-5 text-dark fw-bold">
                 <i class="bi bi-megaphone"></i> Marketing Management
             </h1>
-            <p class="text-muted">Manage marketing campaigns via Email and WhatsApp</p>
+            <p class="text-dark" style="font-size: 1.1rem; font-weight: 500;">Manage marketing campaigns via Email and WhatsApp</p>
         </div>
     </div>
 
-    <ul class="nav nav-tabs mb-4" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#campaign-tab">
-                <i class="bi bi-send"></i> Send Campaign
+    <ul class="nav nav-tabs mb-4 border-0" role="tablist" style="background-color: #e9ecef; border-radius: 10px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <li class="nav-item me-2" role="presentation">
+            <button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#campaign-tab" 
+                style="color: white; background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%); border-radius: 8px; padding: 12px 24px; font-size: 1.1rem; border: none;">
+                <i class="bi bi-send"></i> إرسال حملة
+            </button>
+        </li>
+        <li class="nav-item me-2" role="presentation">
+            <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#customers-tab" 
+                style="color: white; background: linear-gradient(135deg, #6c757d 0%, #495057 100%); border-radius: 8px; padding: 12px 24px; font-size: 1.1rem; border: none;">
+                <i class="bi bi-people"></i> العملاء
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#customers-tab">
-                <i class="bi bi-people"></i> Customers
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#history-tab">
-                <i class="bi bi-clock-history"></i> Campaign History
+            <button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#history-tab" 
+                style="color: white; background: linear-gradient(135deg, #6c757d 0%, #495057 100%); border-radius: 8px; padding: 12px 24px; font-size: 1.1rem; border: none;">
+                <i class="bi bi-clock-history"></i> سجل الحملات
             </button>
         </li>
     </ul>
+    
+    <style>
+        .nav-link:not(.active):hover {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+            color: white !important;
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        .nav-link.active {
+            box-shadow: 0 4px 12px rgba(233, 30, 99, 0.5) !important;
+            transform: translateY(-2px);
+        }
+    </style>
 
     <div class="tab-content">
         <div class="tab-pane fade show active" id="campaign-tab">
             <div class="row">
                 <div class="col-lg-8">
                     <div class="card shadow-sm border-0">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="bi bi-megaphone"></i> Create New Campaign</h5>
+                        <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <h5 class="mb-0 fw-bold"><i class="bi bi-megaphone"></i> إنشاء حملة جديدة</h5>
                         </div>
                         <div class="card-body">
                             <EditForm Model="@campaign" OnValidSubmit="@SendCampaign" FormName="campaignForm">
+                                <!-- Target Audience Selection -->
+                                <div class="mb-4 p-3 rounded" style="background-color: #e3f2fd; border: 2px solid #2196f3;">
+                                    <h6 class="fw-bold mb-3" style="color: #1565c0; font-size: 1.1rem;">
+                                        <i class="bi bi-bullseye"></i> الجمهور المستهدف
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold text-dark" style="font-size: 1rem;">نوع الجمهور</label>
+                                            <select @bind="campaign.AudienceType" class="form-select">
+                                                <option value="registered">العملاء المسجلين (@registeredCustomersCount)</option>
+                                                <option value="active">العملاء النشطين (@activeCustomersCount)</option>
+                                                <option value="inactive">العملاء غير النشطين (@inactiveCustomersCount)</option>
+                                                <option value="all">الجميع (مسجلين + قائمة عامة)</option>
+                                                <option value="custom">قائمة مخصصة</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold text-dark" style="font-size: 1rem;">قناة التسويق</label>
+                                            <select @bind="campaign.Channel" class="form-select">
+                                                <option value="whatsapp">واتساب فقط</option>
+                                                <option value="email">بريد إلكتروني فقط</option>
+                                                <option value="both">كلاهما</option>
+                                                <option value="social">سوشيال ميديا</option>
+                                                <option value="all">جميع القنوات</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    @if (campaign.AudienceType == "custom")
+                                    {
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-upload"></i> ارفع ملف Excel/CSV يحتوي على (الاسم، البريد، رقم الهاتف)
+                                            <input type="file" class="form-control mt-2" accept=".xlsx,.csv" />
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Campaign Template Selection -->
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Campaign Title</label>
-                                    <InputText @bind-Value="campaign.Title" class="form-control" placeholder="Example: Special Offer" />
+                                    <label class="form-label fw-bold text-dark" style="font-size: 1rem;">
+                                        <i class="bi bi-file-text text-primary"></i> قالب الرسالة
+                                    </label>
+                                    <select @bind="selectedTemplate" @bind:after="LoadTemplate" class="form-select mb-2">
+                                        <option value="">-- اختر قالب جاهز --</option>
+                                        <option value="welcome">ترحيب بعميل جديد</option>
+                                        <option value="offer">عرض خاص</option>
+                                        <option value="reminder">تذكير</option>
+                                        <option value="thankyou">شكر بعد الطلب</option>
+                                        <option value="abandoned">سلة متروكة</option>
+                                        <option value="custom">رسالة مخصصة</option>
+                                    </select>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Campaign Type</label>
-                                    <InputSelect @bind-Value="campaign.Type" class="form-select">
-                                        <option value="1">WhatsApp Only</option>
-                                        <option value="2">Email Only</option>
-                                        <option value="3">Both</option>
-                                    </InputSelect>
+                                    <label class="form-label fw-bold text-dark" style="font-size: 1rem;">عنوان الحملة</label>
+                                    <InputText @bind-Value="campaign.Title" class="form-control" placeholder="مثال: عرض خاص للعملاء المميزين" />
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Message Content</label>
+                                    <label class="form-label fw-bold text-dark" style="font-size: 1rem;">محتوى الرسالة</label>
                                     <InputTextArea @bind-Value="campaign.MessageContent" class="form-control" rows="8" 
-                                        placeholder="Write your message here..."></InputTextArea>
+                                        placeholder="اكتب رسالتك هنا... يمكنك استخدام: {الاسم} {رقم_الطلب} {رابط_العرض}"></InputTextArea>
                                     <small class="text-muted">
-                                        This will be sent to @customers.Count subscribed customers
+                                        <i class="bi bi-lightbulb"></i> استخدم المتغيرات: {الاسم}، {البريد}، {رقم_الهاتف}، {رابط_الموقع}
                                     </small>
+                                </div>
+
+                                <!-- Tracking & Social Media -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" @bind="campaign.TrackClicks" id="trackClicks">
+                                            <label class="form-check-label" for="trackClicks">
+                                                <i class="bi bi-graph-up"></i> تتبع النقرات والتحويلات
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" @bind="campaign.GenerateQRCode" id="generateQR">
+                                            <label class="form-check-label" for="generateQR">
+                                                <i class="bi bi-qr-code"></i> إنشاء QR Code للحملة
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Social Media Sharing -->
+                                @if (campaign.Channel == "social" || campaign.Channel == "all")
+                                {
+                                    <div class="mb-3 p-3 rounded" style="background-color: #fff3e0; border: 2px solid #ff9800;">
+                                        <h6 class="fw-bold mb-3 text-dark" style="font-size: 1.05rem;"><i class="bi bi-share text-warning"></i> مشاركة على السوشيال ميديا</h6>
+                                        <div class="btn-group w-100" role="group">
+                                            <button type="button" class="btn btn-outline-primary" @onclick="() => ShareToFacebook()">
+                                                <i class="bi bi-facebook"></i> فيسبوك
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info" @onclick="() => ShareToTwitter()">
+                                                <i class="bi bi-twitter"></i> تويتر
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" @onclick="() => ShareToInstagram()">
+                                                <i class="bi bi-instagram"></i> إنستقرام
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Scheduling -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-dark" style="font-size: 1rem;">
+                                        <i class="bi bi-calendar-event text-success"></i> جدولة الإرسال
+                                    </label>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <select @bind="campaign.SendTiming" class="form-select">
+                                                <option value="now">إرسال فوري</option>
+                                                <option value="scheduled">جدولة</option>
+                                            </select>
+                                        </div>
+                                        @if (campaign.SendTiming == "scheduled")
+                                        {
+                                            <div class="col-md-6">
+                                                <input type="datetime-local" @bind="campaign.ScheduledDate" class="form-control" />
+                                            </div>
+                                        }
+                                    </div>
                                 </div>
 
                                 @if (!string.IsNullOrEmpty(campaignResult))
@@ -74,32 +198,111 @@
                                     </div>
                                 }
 
-                                <button type="submit" class="btn btn-primary btn-lg" disabled="@sending">
-                                    @if (sending)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-2"></span>
-                                    }
-                                    <i class="bi bi-send"></i> Send Campaign Now
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg flex-fill" disabled="@sending">
+                                        @if (sending)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        <i class="bi bi-send"></i> @(campaign.SendTiming == "scheduled" ? "جدولة الحملة" : "إرسال الآن")
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-lg" @onclick="SaveDraft">
+                                        <i class="bi bi-save"></i> حفظ كمسودة
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info btn-lg" @onclick="PreviewCampaign">
+                                        <i class="bi bi-eye"></i> معاينة
+                                    </button>
+                                </div>
                             </EditForm>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-lg-4">
-                    <div class="card shadow-sm border-0 bg-light">
+                    <!-- Campaign Stats -->
+                    <div class="card shadow-sm border-0 mb-3">
+                        <div class="card-header text-white" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-graph-up"></i> إحصائيات سريعة</h6>
+                        </div>
+                        <div class="card-body" style="background-color: #f8f9fa;">
+                            <div class="d-flex justify-content-between mb-3 p-2 rounded" style="background-color: white;">
+                                <span class="text-dark fw-medium">عملاء مسجلين:</span>
+                                <strong class="text-primary" style="font-size: 1.1rem;">@registeredCustomersCount</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 p-2 rounded" style="background-color: white;">
+                                <span class="text-dark fw-medium">عملاء نشطين:</span>
+                                <strong class="text-success" style="font-size: 1.1rem;">@activeCustomersCount</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 p-2 rounded" style="background-color: white;">
+                                <span class="text-dark fw-medium">حملات مرسلة:</span>
+                                <strong class="text-info" style="font-size: 1.1rem;">@totalCampaignsSent</strong>
+                            </div>
+                            <div class="d-flex justify-content-between p-2 rounded" style="background-color: white;">
+                                <span class="text-dark fw-medium">معدل الفتح:</span>
+                                <strong class="text-warning" style="font-size: 1.1rem;">@openRate%</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Templates -->
+                    <div class="card shadow-sm border-0 mb-3">
+                        <div class="card-header text-white" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%);">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text"></i> قوالب سريعة</h6>
+                        </div>
+                        <div class="card-body" style="background-color: #f8f9fa;">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary btn-sm text-end fw-medium" style="border-width: 2px;" @onclick='() => ApplyQuickTemplate("welcome")'>
+                                    <i class="bi bi-hand-thumbs-up"></i> ترحيب بعميل جديد
+                                </button>
+                                <button class="btn btn-outline-success btn-sm text-end fw-medium" style="border-width: 2px;" @onclick='() => ApplyQuickTemplate("offer")'>
+                                    <i class="bi bi-gift"></i> عرض خاص
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm text-end fw-medium" style="border-width: 2px;" @onclick='() => ApplyQuickTemplate("reminder")'>
+                                    <i class="bi bi-bell"></i> تذكير
+                                </button>
+                                <button class="btn btn-outline-info btn-sm text-end fw-medium" style="border-width: 2px;" @onclick='() => ApplyQuickTemplate("thankyou")'>
+                                    <i class="bi bi-heart"></i> شكر بعد الشراء
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Public Landing Page -->
+                    <div class="card shadow-sm border-0 mb-3" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                        <div class="card-body text-white">
+                            <h6 class="fw-bold mb-3" style="color: #ffffff; font-size: 1.1rem;">
+                                <i class="bi bi-link-45deg"></i> رابط التسجيل للجمهور العام
+                            </h6>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" readonly value="https://yoursite.com/subscribe" id="subscribeLink">
+                                <button class="btn btn-light" @onclick="CopySubscribeLink">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                            <small style="color: #e3f2fd; font-weight: 500;">
+                                <i class="bi bi-info-circle"></i> شارك هذا الرابط للحصول على مشتركين جدد
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Tips Card -->
+                    <div class="card shadow-sm border-0" style="background-color: #fff8e1; border: 2px solid #ffc107 !important;">
                         <div class="card-body">
-                            <h6 class="fw-bold mb-3"><i class="bi bi-info-circle"></i> Campaign Tips:</h6>
+                            <h6 class="fw-bold mb-3" style="color: #f57c00; font-size: 1.1rem;">
+                                <i class="bi bi-lightbulb-fill"></i> نصائح تسويقية
+                            </h6>
                             <ul class="list-unstyled">
-                                <li class="mb-2">* Keep subject clear and attractive</li>
-                                <li class="mb-2">* Include a clear call-to-action</li>
-                                <li class="mb-2">* Keep it short and valuable</li>
-                                <li class="mb-2">* Consider timing of delivery</li>
-                                <li class="mb-2">* Always test before sending</li>
+                                <li class="mb-2 text-dark fw-medium"><i class="bi bi-check-circle-fill text-success"></i> اجعل العنوان جذاباً ومختصراً</li>
+                                <li class="mb-2 text-dark fw-medium"><i class="bi bi-check-circle-fill text-success"></i> استخدم اسم العميل للتخصيص</li>
+                                <li class="mb-2 text-dark fw-medium"><i class="bi bi-check-circle-fill text-success"></i> أضف call-to-action واضح</li>
+                                <li class="mb-2 text-dark fw-medium"><i class="bi bi-check-circle-fill text-success"></i> أرسل في الأوقات المناسبة</li>
+                                <li class="mb-2 text-dark fw-medium"><i class="bi bi-check-circle-fill text-success"></i> اختبر الرسالة قبل الإرسال</li>
+                                <li class="mb-2 text-dark fw-medium"><i class="bi bi-check-circle-fill text-success"></i> تابع النتائج وحللها</li>
                             </ul>
 
-                            <div class="alert alert-warning mb-0">
-                                <small><strong>Note:</strong> Make sure you have permission to send marketing messages.</small>
+                            <div class="alert mb-0" style="background-color: #fff3cd; border: 2px solid #ffc107; color: #856404;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> 
+                                <strong>تنبيه:</strong> تأكد من موافقة العملاء على استلام رسائل تسويقية
                             </div>
                         </div>
                     </div>
@@ -214,8 +417,6 @@
 </div>
 
 @code {
-    [Inject] private HttpClient Http { get; set; } = default!;
-
     private CampaignFormModel campaign = new();
     private List<CustomerDto> customers = new();
     private List<CampaignDto> campaigns = new();
@@ -295,6 +496,105 @@
         public string Title { get; set; } = "";
         public string MessageContent { get; set; } = "";
         public int Type { get; set; } = 3;
+        public string AudienceType { get; set; } = "registered";
+        public string Channel { get; set; } = "both";
+        public bool TrackClicks { get; set; } = true;
+        public bool GenerateQRCode { get; set; } = false;
+        public string SendTiming { get; set; } = "now";
+        public DateTime? ScheduledDate { get; set; }
+    }
+
+    // Template Messages
+    private Dictionary<string, string> messageTemplates = new()
+    {
+        ["welcome"] = "مرحباً {الاسم}! 🎉\n\nنحن سعداء بانضمامك لعائلة الماسة. نقدم لك أفضل الخدمات والعروض الحصرية.\n\nزر موقعنا: {رابط_الموقع}",
+        ["offer"] = "عرض خاص لك {الاسم}! 🎁\n\nاحصل على خصم 20% على جميع خدماتنا لفترة محدودة!\n\nاستخدم الكود: SPECIAL20\nالرابط: {رابط_العرض}",
+        ["reminder"] = "تذكير {الاسم} 🔔\n\nلا تنسَ! لديك عرض حصري ينتهي قريباً.\n\nشاهد التفاصيل: {رابط_الموقع}",
+        ["thankyou"] = "شكراً لك {الاسم}! ❤️\n\nنقدر ثقتك بنا. طلبك رقم #{رقم_الطلب} قيد التنفيذ.\n\nتابع طلبك: {رابط_الموقع}",
+        ["abandoned"] = "نلاحظ أنك تركت سلة التسوق {الاسم} 🛒\n\nأكمل طلبك الآن واحصل على خصم 10%!\n\nارجع للسلة: {رابط_السلة}"
+    };
+
+    private string selectedTemplate = "";
+    private int registeredCustomersCount = 0;
+    private int activeCustomersCount = 0;
+    private int inactiveCustomersCount = 0;
+    private int totalCampaignsSent = 0;
+    private double openRate = 0;
+
+    private void LoadTemplate()
+    {
+        if (!string.IsNullOrEmpty(selectedTemplate) && messageTemplates.ContainsKey(selectedTemplate))
+        {
+            campaign.MessageContent = messageTemplates[selectedTemplate];
+        }
+    }
+
+    private void ApplyQuickTemplate(string templateKey)
+    {
+        selectedTemplate = templateKey;
+        LoadTemplate();
+    }
+
+    private async Task SaveDraft()
+    {
+        // حفظ الحملة كمسودة
+        try
+        {
+            await Http.PostAsJsonAsync("/api/marketing/draft", campaign);
+            campaignResult = "تم حفظ المسودة بنجاح";
+            campaignSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            campaignResult = $"خطأ في حفظ المسودة: {ex.Message}";
+            campaignSuccess = false;
+        }
+    }
+
+    private void PreviewCampaign()
+    {
+        // عرض معاينة للحملة
+        var previewMessage = campaign.MessageContent
+            .Replace("{الاسم}", "أحمد محمد")
+            .Replace("{البريد}", "ahmed@example.com")
+            .Replace("{رقم_الهاتف}", "0501234567")
+            .Replace("{رابط_الموقع}", "https://yoursite.com")
+            .Replace("{رقم_الطلب}", "12345")
+            .Replace("{رابط_العرض}", "https://yoursite.com/offer")
+            .Replace("{رابط_السلة}", "https://yoursite.com/cart");
+        
+        campaignResult = $"معاينة الرسالة:\n\n{previewMessage}";
+        campaignSuccess = true;
+    }
+
+    private async Task CopySubscribeLink()
+    {
+        // نسخ رابط التسجيل
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", "https://yoursite.com/subscribe");
+            campaignResult = "تم نسخ الرابط بنجاح!";
+            campaignSuccess = true;
+        }
+        catch { }
+    }
+
+    private void ShareToFacebook()
+    {
+        var url = $"https://www.facebook.com/sharer/sharer.php?u={"https://yoursite.com"}&quote={campaign.Title}";
+        JSRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+
+    private void ShareToTwitter()
+    {
+        var url = $"https://twitter.com/intent/tweet?text={campaign.Title}&url={"https://yoursite.com"}";
+        JSRuntime.InvokeVoidAsync("open", url, "_blank");
+    }
+
+    private void ShareToInstagram()
+    {
+        campaignResult = "للمشاركة على إنستقرام: استخدم تطبيق الموبايل مباشرة";
+        campaignSuccess = true;
     }
 
     public class CustomerDto

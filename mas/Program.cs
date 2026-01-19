@@ -255,6 +255,15 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
+// Configure SignalR for better stability
+builder.Services.AddSignalR(options =>
+{
+    options.MaximumReceiveMessageSize = 102400; // 100 KB
+    options.EnableDetailedErrors = true;
+    options.KeepAliveInterval = TimeSpan.FromSeconds(10);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -488,6 +497,25 @@ static async Task<bool> InitializeDatabaseAsync(IServiceProvider rootServices)
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(adminUser, "Admin");
+                logger.LogInformation("✓ Admin user created with Admin role");
+            }
+            else
+            {
+                logger.LogError($"✗ Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+        }
+        else
+        {
+            // Ensure admin has Admin role
+            var roles = await userManager.GetRolesAsync(adminUser);
+            if (!roles.Contains("Admin"))
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+                logger.LogInformation("✓ Added Admin role to existing admin user");
+            }
+            else
+            {
+                logger.LogInformation("✓ Admin user already has Admin role");
             }
         }
 

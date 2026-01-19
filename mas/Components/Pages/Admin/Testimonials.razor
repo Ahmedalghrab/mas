@@ -1,0 +1,173 @@
+@page "/admin/testimonials"
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<PageTitle>إدارة التقييمات - لوحة التحكم</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-5">
+                    <i class="bi bi-star-fill"></i> إدارة التقييمات
+                </h1>
+                <button class="btn btn-primary btn-lg" @onclick="AddNewTestimonial">
+                    <i class="bi bi-plus-circle"></i> إضافة تقييم جديد
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    }
+    else if (testimonials == null || !testimonials.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-3"></i>
+            <p class="mt-2 mb-0">لا توجد تقييمات.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var testimonial in testimonials)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                @if (!string.IsNullOrEmpty(testimonial.CustomerImage))
+                                {
+                                    <img src="@testimonial.CustomerImage" alt="@testimonial.CustomerName" 
+                                        class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;" />
+                                }
+                                else
+                                {
+                                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" 
+                                        style="width: 60px; height: 60px;">
+                                        <i class="bi bi-person fs-3 text-primary"></i>
+                                    </div>
+                                }
+                                <div>
+                                    <h6 class="mb-0">@testimonial.CustomerName</h6>
+                                    <div>
+                                        @for (int i = 0; i < 5; i++)
+                                        {
+                                            if (i < testimonial.Rating)
+                                            {
+                                                <i class="bi bi-star-fill text-warning"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-star text-muted"></i>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="mb-3">@testimonial.ContentAr</p>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    @if (testimonial.IsActive)
+                                    {
+                                        <span class="badge bg-success">نشط</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">غير نشط</span>
+                                    }
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-warning" @onclick="() => EditTestimonial(testimonial)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteTestimonial(testimonial.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<TestimonialDto> testimonials = new();
+    private bool loading = true;
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private ILogger<Testimonials> Logger { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTestimonials();
+    }
+
+    private async Task LoadTestimonials()
+    {
+        loading = true;
+        try
+        {
+            var response = await Http.GetAsync("/api/testimonials?isActive=");
+            if (response.IsSuccessStatusCode)
+            {
+                testimonials = await response.Content.ReadFromJsonAsync<List<TestimonialDto>>() ?? new();
+            }
+            else
+            {
+                testimonials = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading testimonials");
+            testimonials = new();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void AddNewTestimonial()
+    {
+        // Implement add testimonial functionality
+        Logger.LogInformation("Add new testimonial");
+    }
+
+    private void EditTestimonial(TestimonialDto testimonial)
+    {
+        // Implement edit testimonial functionality
+        Logger.LogInformation($"Edit testimonial {testimonial.Id}");
+    }
+
+    private async Task DeleteTestimonial(int id)
+    {
+        // Implement delete testimonial functionality
+        Logger.LogInformation($"Delete testimonial {id}");
+    }
+
+    public class TestimonialDto
+    {
+        public int Id { get; set; }
+        public string CustomerName { get; set; } = null!;
+        public string? CustomerImage { get; set; }
+        public string ContentAr { get; set; } = null!;
+        public string ContentEn { get; set; } = null!;
+        public int Rating { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+}

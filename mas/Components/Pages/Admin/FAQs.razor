@@ -1,0 +1,161 @@
+@page "/admin/faqs"
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<PageTitle>إدارة الأسئلة الشائعة - لوحة التحكم</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-5">
+                    <i class="bi bi-question-circle"></i> إدارة الأسئلة الشائعة
+                </h1>
+                <button class="btn btn-primary btn-lg" @onclick="AddNewFAQ">
+                    <i class="bi bi-plus-circle"></i> إضافة سؤال جديد
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+    }
+    else if (faqs == null || !faqs.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-3"></i>
+            <p class="mt-2 mb-0">لا توجد أسئلة شائعة.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الترتيب</th>
+                                <th>السؤال</th>
+                                <th>الإجابة</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var faq in faqs)
+                            {
+                                <tr>
+                                    <td>@faq.DisplayOrder</td>
+                                    <td>
+                                        <strong>@faq.QuestionAr</strong><br />
+                                        <small class="text-muted">@faq.QuestionEn</small>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(faq.AnswerAr))
+                                        {
+                                            <span>@(faq.AnswerAr.Length > 50 ? faq.AnswerAr.Substring(0, 50) + "..." : faq.AnswerAr)</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (faq.IsActive)
+                                        {
+                                            <span class="badge bg-success">نشط</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">غير نشط</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" @onclick="() => EditFAQ(faq)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteFAQ(faq.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<FAQDto> faqs = new();
+    private bool loading = true;
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private ILogger<FAQs> Logger { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFAQs();
+    }
+
+    private async Task LoadFAQs()
+    {
+        loading = true;
+        try
+        {
+            var response = await Http.GetAsync("/api/faqs?isActive=");
+            if (response.IsSuccessStatusCode)
+            {
+                faqs = await response.Content.ReadFromJsonAsync<List<FAQDto>>() ?? new();
+            }
+            else
+            {
+                faqs = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading FAQs");
+            faqs = new();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void AddNewFAQ()
+    {
+        // Implement add FAQ functionality
+        Logger.LogInformation("Add new FAQ");
+    }
+
+    private void EditFAQ(FAQDto faq)
+    {
+        // Implement edit FAQ functionality
+        Logger.LogInformation($"Edit FAQ {faq.Id}");
+    }
+
+    private async Task DeleteFAQ(int id)
+    {
+        // Implement delete FAQ functionality
+        Logger.LogInformation($"Delete FAQ {id}");
+    }
+
+    public class FAQDto
+    {
+        public int Id { get; set; }
+        public string QuestionAr { get; set; } = null!;
+        public string QuestionEn { get; set; } = null!;
+        public string AnswerAr { get; set; } = null!;
+        public string AnswerEn { get; set; } = null!;
+        public int DisplayOrder { get; set; }
+        public bool IsActive { get; set; }
+    }
+}

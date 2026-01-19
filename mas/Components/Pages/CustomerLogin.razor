@@ -1,11 +1,6 @@
 @page "/customer/login"
-@using Microsoft.AspNetCore.Identity
-@using mas.Models
+@using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
-@inject UserManager<ApplicationUser> UserManager
-@inject SignInManager<ApplicationUser> SignInManager
-@inject NavigationManager Navigation
-@inject ILogger<CustomerLogin> Logger
 
 <PageTitle>تسجيل الدخول - الماسة</PageTitle>
 
@@ -27,43 +22,36 @@
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i>
                             @errorMessage
-                            <button type="button" class="btn-close" @onclick="@(() => errorMessage = null)"></button>
                         </div>
                     }
 
-                    <EditForm Model="@model" OnValidSubmit="@HandleLogin" FormName="loginForm">
-                        <DataAnnotationsValidator />
+                    <form method="post" action="/Account/CustomerLoginPost">
+                        <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
 
                         <div class="mb-3">
                             <label class="form-label fw-bold">
                                 <i class="bi bi-envelope me-1"></i> البريد الإلكتروني
                             </label>
-                            <InputText @bind-Value="model.Email" type="email" class="form-control form-control-lg" placeholder="example@domain.com" />
-                            <ValidationMessage For="@(() => model.Email)" class="text-danger" />
+                            <input type="email" name="Email" class="form-control form-control-lg" placeholder="example@domain.com" required />
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-bold">
                                 <i class="bi bi-lock me-1"></i> كلمة المرور
                             </label>
-                            <InputText @bind-Value="model.Password" type="password" class="form-control form-control-lg" placeholder="••••••••" />
-                            <ValidationMessage For="@(() => model.Password)" class="text-danger" />
+                            <input type="password" name="Password" class="form-control form-control-lg" placeholder="••••••••" required />
                         </div>
 
                         <div class="mb-4">
                             <div class="form-check">
-                                <InputCheckbox @bind-Value="model.RememberMe" class="form-check-input" id="rememberMe" />
+                                <input type="checkbox" name="RememberMe" class="form-check-input" id="rememberMe" value="true" />
                                 <label class="form-check-label" for="rememberMe">
                                     تذكرني
                                 </label>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3" disabled="@isSubmitting">
-                            @if (isSubmitting)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2"></span>
-                            }
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
                             <i class="bi bi-box-arrow-in-right me-2"></i>
                             تسجيل الدخول
                         </button>
@@ -74,7 +62,7 @@
                                 <a href="/register" class="text-primary fw-bold">سجل الآن</a>
                             </p>
                         </div>
-                    </EditForm>
+                    </form>
                 </div>
             </div>
 
@@ -91,68 +79,6 @@
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
-    private LoginModel model = new();
-    private bool isSubmitting = false;
-    private string? errorMessage;
-
-    private async Task HandleLogin()
-    {
-        isSubmitting = true;
-        errorMessage = null;
-
-        try
-        {
-            var result = await SignInManager.PasswordSignInAsync(
-                model.Email,
-                model.Password,
-                model.RememberMe,
-                lockoutOnFailure: false
-            );
-
-            if (result.Succeeded)
-            {
-                // Update last login
-                var user = await UserManager.FindByEmailAsync(model.Email);
-                if (user != null)
-                {
-                    user.LastLoginAt = DateTime.UtcNow;
-                    await UserManager.UpdateAsync(user);
-                }
-
-                Logger.LogInformation("Customer logged in: {Email}", model.Email);
-
-                var returnUrl = ReturnUrl ?? "/";
-                Navigation.NavigateTo(returnUrl);
-            }
-            else if (result.IsLockedOut)
-            {
-                errorMessage = "تم قفل حسابك مؤقتاً. يرجى المحاولة لاحقاً.";
-            }
-            else
-            {
-                errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Login error for {Email}", model.Email);
-            errorMessage = $"حدث خطأ أثناء تسجيل الدخول: {ex.Message}";
-        }
-        finally
-        {
-            isSubmitting = false;
-        }
-    }
-
-    public class LoginModel
-    {
-        [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
-        [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صحيح")]
-        public string Email { get; set; } = "";
-
-        [Required(ErrorMessage = "كلمة المرور مطلوبة")]
-        public string Password { get; set; } = "";
-
-        public bool RememberMe { get; set; } = true;
-    }
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? errorMessage { get; set; }
 }

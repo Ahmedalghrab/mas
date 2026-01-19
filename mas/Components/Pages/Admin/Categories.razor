@@ -1,4 +1,5 @@
 @page "/admin/categories"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using mas.Models
@@ -262,7 +263,7 @@
         loading = true;
         try
         {
-            categories = await Http.GetFromJsonAsync<List<Category>>("api/Categories?isActive=");
+            categories = await Http.GetFromJsonAsync<List<Category>>("/api/Categories");
         }
         catch (Exception ex)
         {
@@ -276,35 +277,49 @@
 
     private async Task ShowAddModal()
     {
-        editingCategory = new Category 
-        { 
-            NameAr = "",
-            NameEn = "",
-            IsActive = true 
-        };
-        await LoadIconsIfNeeded();
-        showModal = true;
-        StateHasChanged();
+        try
+        {
+            editingCategory = new Category 
+            { 
+                NameAr = "",
+                NameEn = "",
+                IsActive = true 
+            };
+            await LoadIconsIfNeeded();
+            showModal = true;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", "Error in ShowAddModal:", ex.Message);
+        }
     }
 
     private async Task EditCategory(Category category)
     {
-        editingCategory = new Category
+        try
         {
-            Id = category.Id,
-            NameAr = category.NameAr ?? "",
-            NameEn = category.NameEn ?? "",
-            DescriptionAr = category.DescriptionAr,
-            DescriptionEn = category.DescriptionEn,
-            IconClass = category.IconClass,
-            ImageUrl = category.ImageUrl,
-            IsActive = category.IsActive
-        };
-        selectedImage = null;
-        selectedImagePreview = null;
-        await LoadIconsIfNeeded();
-        showModal = true;
-        StateHasChanged();
+            editingCategory = new Category
+            {
+                Id = category.Id,
+                NameAr = category.NameAr ?? "",
+                NameEn = category.NameEn ?? "",
+                DescriptionAr = category.DescriptionAr,
+                DescriptionEn = category.DescriptionEn,
+                IconClass = category.IconClass,
+                ImageUrl = category.ImageUrl,
+                IsActive = category.IsActive
+            };
+            selectedImage = null;
+            selectedImagePreview = null;
+            await LoadIconsIfNeeded();
+            showModal = true;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", "Error in EditCategory:", ex.Message);
+        }
     }
 
     private async Task SaveCategory()
@@ -321,7 +336,7 @@
                 content.Add(fileContent, "file", selectedImage.Name);
                 content.Add(new StringContent("categories"), "folder");
 
-                var imageResponse = await Http.PostAsync("api/Image/upload", content);
+                var imageResponse = await Http.PostAsync("/api/Image/upload", content);
                 if (imageResponse.IsSuccessStatusCode)
                 {
                     var imageResult = await imageResponse.Content.ReadFromJsonAsync<ImageUploadResponse>();
@@ -335,11 +350,11 @@
             HttpResponseMessage response;
             if (editingCategory.Id == 0)
             {
-                response = await Http.PostAsJsonAsync("api/Categories", editingCategory);
+                response = await Http.PostAsJsonAsync("/api/Categories", editingCategory);
             }
             else
             {
-                response = await Http.PutAsJsonAsync($"api/Categories/{editingCategory.Id}", editingCategory);
+                response = await Http.PutAsJsonAsync($"/api/Categories/{editingCategory.Id}", editingCategory);
             }
 
             if (response.IsSuccessStatusCode)
@@ -378,7 +393,7 @@
 
         try
         {
-            var response = await Http.DeleteAsync($"api/Categories/{id}");
+            var response = await Http.DeleteAsync($"/api/Categories/{id}");
             if (response.IsSuccessStatusCode)
             {
                 ShowMessage("تم حذف التصنيف بنجاح", "alert-success");

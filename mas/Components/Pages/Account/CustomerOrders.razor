@@ -1,0 +1,236 @@
+@page "/account/orders"
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+@attribute [Authorize]
+
+<PageTitle>طلبياتي - الماسة</PageTitle>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-10 offset-lg-1">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold">
+                    <i class="bi bi-box-seam"></i> طلبياتي
+                </h2>
+                <p class="text-muted">جميع الطلبيات التي قمت بها</p>
+            </div>
+
+            @if (loading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            }
+            else if (orders == null || !orders.Any())
+            {
+                <div class="card shadow-lg border-0" style="border-radius: 20px;">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                        <h5>لا توجد طلبيات</h5>
+                        <p class="text-muted">لم تقم بأي طلبيات حتى الآن</p>
+                        <a href="/services" class="btn btn-primary mt-3">
+                            <i class="bi bi-grid-3x3-gap-fill"></i> تصفح الخدمات
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="row g-4">
+                    @foreach (var order in orders)
+                    {
+                        <div class="col-12">
+                            <div class="card shadow-lg border-0 h-100" style="border-radius: 20px;">
+                                <div class="card-body p-4">
+                                    <div class="row align-items-center mb-3">
+                                        <div class="col-md-6">
+                                            <h5 class="fw-bold mb-1">
+                                                <i class="bi bi-receipt"></i> طلبية #@order.OrderNumber
+                                            </h5>
+                                            <p class="text-muted mb-0">
+                                                <i class="bi bi-calendar"></i> @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                            </p>
+                                        </div>
+                                        <div class="col-md-6 text-md-end">
+                                            <div class="mb-2">
+                                                @switch (order.Status)
+                                                {
+                                                    case OrderStatus.Pending:
+                                                        <span class="badge bg-warning fs-6">قيد الانتظار</span>
+                                                        break;
+                                                    case OrderStatus.Processing:
+                                                        <span class="badge bg-info fs-6">قيد المعالجة</span>
+                                                        break;
+                                                    case OrderStatus.Completed:
+                                                        <span class="badge bg-success fs-6">مكتملة</span>
+                                                        break;
+                                                    case OrderStatus.Cancelled:
+                                                        <span class="badge bg-danger fs-6">ملغاة</span>
+                                                        break;
+                                                    case OrderStatus.Refunded:
+                                                        <span class="badge bg-secondary fs-6">مسترجعة</span>
+                                                        break;
+                                                }
+                                            </div>
+                                            <p class="text-muted mb-0">
+                                                حالة الدفع: 
+                                                @switch (order.PaymentStatus)
+                                                {
+                                                    case PaymentStatus.Pending:
+                                                        <span class="badge bg-warning">قيد الانتظار</span>
+                                                        break;
+                                                    case PaymentStatus.Paid:
+                                                        <span class="badge bg-success">مدفوع</span>
+                                                        break;
+                                                    case PaymentStatus.Failed:
+                                                        <span class="badge bg-danger">فشل</span>
+                                                        break;
+                                                    case PaymentStatus.Refunded:
+                                                        <span class="badge bg-secondary">مسترجع</span>
+                                                        break;
+                                                }
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <hr />
+
+                                    <div class="mb-3">
+                                        <h6 class="fw-bold mb-3">تفاصيل الخدمات:</h6>
+                                        @foreach (var item in order.OrderItems)
+                                        {
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div>
+                                                    <strong>@item.ProductNameAr</strong>
+                                                    <br />
+                                                    <small class="text-muted">الكمية: @item.Quantity × @item.UnitPrice.ToString("N0") SAR</small>
+                                                </div>
+                                                <div>
+                                                    <strong>@item.TotalPrice.ToString("N0") SAR</strong>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <hr />
+
+                                    <div class="row">
+                                        <div class="col-md-6 ms-auto">
+                                            <p class="mb-1"><strong>المبلغ الإجمالي:</strong> @order.TotalAmount.ToString("N0") SAR</p>
+                                            @if (order.DiscountAmount > 0)
+                                            {
+                                                <p class="mb-1 text-danger"><strong>الخصم:</strong> -@order.DiscountAmount.ToString("N0") SAR</p>
+                                            }
+                                            <p class="mb-0 fs-5"><strong class="text-success">المبلغ النهائي:</strong> @order.FinalAmount.ToString("N0") SAR</p>
+                                        </div>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(order.Notes))
+                                    {
+                                        <hr />
+                                        <p class="mb-0"><strong>ملاحظات:</strong> @order.Notes</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<OrderDto> orders = new();
+    private bool loading = true;
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private ILogger<CustomerOrders> Logger { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrders();
+    }
+
+    private async Task LoadOrders()
+    {
+        loading = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                orders = new();
+                return;
+            }
+
+            // This would call an API endpoint if it exists
+            var response = await Http.GetAsync($"/api/orders/user/{userId}");
+            if (response.IsSuccessStatusCode)
+            {
+                orders = await response.Content.ReadFromJsonAsync<List<OrderDto>>() ?? new();
+            }
+            else
+            {
+                orders = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading user orders");
+            orders = new();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    public class OrderDto
+    {
+        public int Id { get; set; }
+        public string OrderNumber { get; set; } = null!;
+        public decimal TotalAmount { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal FinalAmount { get; set; }
+        public OrderStatus Status { get; set; }
+        public PaymentStatus PaymentStatus { get; set; }
+        public string? Notes { get; set; }
+        public string? CouponCode { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public List<OrderItemDto> OrderItems { get; set; } = new();
+    }
+
+    public class OrderItemDto
+    {
+        public int Id { get; set; }
+        public int ProductId { get; set; }
+        public string ProductNameAr { get; set; } = null!;
+        public string ProductNameEn { get; set; } = null!;
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TotalPrice { get; set; }
+    }
+
+    public enum OrderStatus
+    {
+        Pending,
+        Processing,
+        Completed,
+        Cancelled,
+        Refunded
+    }
+
+    public enum PaymentStatus
+    {
+        Pending,
+        Paid,
+        Failed,
+        Refunded
+    }
+}

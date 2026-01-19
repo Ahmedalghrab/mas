@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
 @inject mas.Services.LanguageService Lang
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <div class="page-wrapper" dir="@Lang.Direction">
     <nav class="navbar navbar-expand-lg navbar-dark shadow-sm sticky-top">
@@ -41,6 +43,34 @@
                 </ul>
                 <div class="d-flex gap-2 align-items-center">
                     <LanguageSwitcher />
+                    
+                    <AuthorizeView>
+                        <Authorized>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-light btn-lg px-4 rounded-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border-width: 2px;">
+                                    <i class="bi bi-person-circle"></i> @context.User.Identity?.Name
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="/account/profile"><i class="bi bi-person"></i> الملف الشخصي</a></li>
+                                    <li><a class="dropdown-item" href="/account/orders"><i class="bi bi-bag"></i> طلباتي</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="post" action="/Account/Logout">
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </Authorized>
+                        <NotAuthorized>
+                            <a href="/customer/login" class="btn btn-outline-light btn-lg px-4 rounded-pill" style="border-width: 2px;">
+                                <i class="bi bi-person-circle"></i> حسابي
+                            </a>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                    
                     <a href="@whatsappLink" class="btn btn-outline-light btn-lg px-4 rounded-pill" target="_blank" style="border-width: 2px;">
                         <i class="bi bi-whatsapp"></i> @Lang.Get("contact_us")
                     </a>
