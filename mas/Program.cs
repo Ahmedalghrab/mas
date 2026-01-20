@@ -468,6 +468,30 @@ static async Task<bool> InitializeDatabaseAsync(IServiceProvider rootServices)
             return false;
         }
 
+        // CRITICAL: Ensure SiteSettings columns exist BEFORE any SiteSettings queries
+        if (context.Database.IsNpgsql())
+        {
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync(@"
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SiteSettings' AND lower(column_name)='createdat') THEN
+                            ALTER TABLE ""SiteSettings"" ADD COLUMN ""CreatedAt"" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SiteSettings' AND lower(column_name)='updatedat') THEN
+                            ALTER TABLE ""SiteSettings"" ADD COLUMN ""UpdatedAt"" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;
+                        END IF;
+                    END $$;
+                ");
+                Console.WriteLine("✓ SiteSettings columns added/checked successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠ Warning adding SiteSettings columns: {ex.Message}");
+            }
+        }
+
         // CRITICAL: Add ApplicationUser columns BEFORE any user queries
         if (context.Database.IsNpgsql())
         {

@@ -24,6 +24,12 @@ namespace mas.Data
                 Console.WriteLine($"⚠️ SiteSettings table schema outdated: {ex.Message}");
                 return;
             }
+            catch (Npgsql.PostgresException ex) when (ex.SqlState == "42703")
+            {
+                // PostgreSQL missing column (e.g., CreatedAt) - schema will be repaired at startup
+                Console.WriteLine($"⚠️ SiteSettings table schema outdated: {ex.Message}");
+                return;
+            }
 
             settings = new SiteSettings
             {
